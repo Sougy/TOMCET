@@ -1,0 +1,274 @@
+#include <Wire.h>
+#include "RTClib.h"
+
+#define HOURDIV 3600
+#define MINDIV 60
+#define AT24C32 0x57
+
+DateTime now;
+RTC_DS3231 rtc;
+
+//Engine status & Sensor status
+String ENGSTAT, TRIGSTAT;
+
+typedef struct
+{
+  String DATAIN;
+  String SETDATA[12];
+  bool INHM   = false;
+  bool START  = false;
+  bool END    = false;
+  bool LTCVAL = false;
+  uint8_t VAL = 0;
+  uint8_t SEQ = 0;
+  uint8_t I;
+  char INBYTE;
+  char MSG[20];
+  byte IDX;
+} SERCOM; SERCOM VARSER;
+
+typedef struct
+{
+  uint8_t SEC;
+  uint8_t MIN;
+  uint8_t SEQ;
+  uint32_t HR;
+  char RCVDATA[12];
+  char DATA2WRT[12];
+  unsigned long SVDHM;
+  unsigned long LASTUNIX;
+  unsigned long DELTATIME;
+  bool LTCHM = false;
+
+} RTCOM; RTCOM VARRTC;
+
+void setup() {
+  // put your setup code here, to run once:
+  DDRD &= ~(1 << PIND3); //ACC
+  DDRD &= ~(1 << PIND4); //DUMP
+  DDRD &= ~(1 << PIND7); //ALT
+  DDRD  |= (1 << PIND6);
+  PORTD |= (1 << PIND3);
+  PORTD |= (1 << PIND4);
+  PORTD |= (1 << PIND7);
+  Wire.begin();
+  rtc.begin();
+  Serial.begin(9600);
+}
+
+void loop() {
+  // put your main code here, to run repeatedly:
+
+}
+
+void SERFLUSH(void)
+{
+  while (true)
+  {
+    delay(10);
+    if (Serial.available())
+    {
+      while (Serial.available())
+        Serial.read();
+      continue;
+    }
+    else
+      break;
+  }
+}
+
+void LTCSER()
+{
+  while (Serial.available() > 0)
+  {
+    VARSER.INBYTE = Serial.read();
+    if (VARSER.INBYTE == '<')
+    {
+      VARSER.START     = true;
+      VARSER.IDX       = 0;
+      VARSER.MSG[VARSER.IDX]  = '\0';
+    }
+    else if (VARSER.INBYTE == '>')
+    {
+      VARSER.END = true;
+      break;
+    }
+    else
+    {
+      if (VARSER.IDX < 20)
+      {
+        VARSER.MSG[VARSER.IDX] = VARSER.INBYTE;
+        VARSER.IDX++;
+        VARSER.MSG[VARSER.IDX] = '\0';
+      }
+    }
+  }
+
+  if (VARSER.START && VARSER.END)
+  {
+    VARSER.VAL              = atoi(VARSER.MSG);
+    VARSER.IDX              = 0;
+    VARSER.MSG[VARSER.IDX]  = '\0';
+    VARSER.START            = false;
+    VARSER.END              = false;
+    VARSER.LTCVAL           = true;
+  }
+}
+
+void PARSETHM()
+{
+  while (Serial.available() > 0) {
+    char INCHAR = (char)Serial.read();
+    VARSER.DATAIN += INCHAR;
+    if (INCHAR == '\n') {
+      VARSER.INHM  = true;
+    }
+  }
+  if (VARSER.INHM) {
+    for (VARSER.I = 1; VARSER.I < VARSER.DATAIN.length(); VARSER.I++) {
+      if (VARSER.DATAIN[VARSER.I] == '<') {
+        VARSER.SETDATA[VARSER.SEQ] = "";
+      }
+      else if (VARSER.DATAIN[VARSER.I] == '>') {
+        VARSER.SEQ++;
+        VARSER.SETDATA[VARSER.SEQ] = "";
+      }
+      else {
+        VARSER.SETDATA[VARSER.SEQ] = VARSER.SETDATA[VARSER.SEQ] + VARSER.DATAIN[VARSER.I];
+      }
+    }
+    VARSER.SEQ                  = 0;
+    //B4 flushing(SETDATA[0]) need to be saved to rtc saving var
+    VARSER.SETDATA[VARSER.SEQ]  = "";
+    VARSER.DATAIN               = "";
+  }
+}
+
+void LTCSEN()
+{
+  if ((!(PIND & (1 << PIND3))) && (PIND & (1 << PIND7)) && (PIND & (1 << PIND4)))
+  {
+    ENGSTAT   = "IN";
+    TRIGSTAT  = "";
+    Serial.print(String(ENGSTAT) + "|" + TRIGSTAT);
+  }
+  else if ((!(PIND & (1 << PIND3))) && (!(PIND & (1 << PIND7))) && (PIND & (1 << PIND4)))
+  {
+    ENGSTAT = "RG";
+    TRIGSTAT  = "";
+    Serial.print(String(ENGSTAT) + "|" + TRIGSTAT);
+  }
+  else if ((!(PIND & (1 << PIND3))) && (!(PIND & (1 << PIND7))) && (!(PIND & (1 << PIND4))))
+  {
+    ENGSTAT = "RG";
+    ENGSTAT = "DG";
+    Serial.print(String(ENGSTAT) + "|" + TRIGSTAT);
+  }
+  else {
+    ENGSTAT = "IF";
+    ENGSTAT = "";
+    Serial.print(String(ENGSTAT) + "|" + TRIGSTAT);
+  }
+  Serial.println();
+}
+
+void WRTBYTE(int DVCADDR, unsigned int EEADDR, byte DATA)
+{
+  int RDATA = DATA;
+  Wire.beginTransmission(DVCADDR);
+  Wire.write((int)(EEADDR >> 8));
+  Wire.write((int)(EEADDR & 0xFF));
+  Wire.write(RDATA);
+  Wire.endTransmission();
+}
+
+void WRTPAGE(int DVCADDR, unsigned int EEADDR, byte* DATA, byte LENGTH)
+{
+  Wire.beginTransmission(DVCADDR);
+  Wire.write((int)(EEADDR >> 8));
+  Wire.write((int)(EEADDR & 0xFF));
+  byte DATASEQ;
+  for (DATASEQ = 0; DATASEQ < LENGTH; DATASEQ++) {
+    Wire.write(DATA[DATASEQ]);
+    Wire.endTransmission();
+  }
+}
+
+byte RDBYTE(int DVCADDR, unsigned int EEADDR)
+{
+  byte RDATA  = 0xFF;
+  Wire.beginTransmission(DVCADDR);
+  Wire.write((int)(EEADDR >> 8));
+  Wire.write((int)(EEADDR & 0xFF));
+  Wire.endTransmission();
+  Wire.requestFrom(DVCADDR, 1);
+  if (Wire.available()) RDATA = Wire.read();
+  return RDATA;
+}
+
+void RDBUF(int DVCADDR, unsigned int EEADDR, byte *BUFFER, int LENGTH)
+{
+  Wire.beginTransmission(DVCADDR);
+  Wire.write((int)(EEADDR >> 8));
+  Wire.write((int)(EEADDR & 0xFF));
+  Wire.endTransmission();
+  Wire.requestFrom(DVCADDR, LENGTH);
+  int DATASEQ = 0;
+  for (DATASEQ = 0; DATASEQ < LENGTH; DATASEQ++)
+    if (Wire.available()) BUFFER[DATASEQ] = Wire.read();
+}
+
+void HMS()
+{
+  now = rtc.now();
+
+  if ((!(PIND & (1 << PIND3))) && (!(PIND & (1 << PIND7)))) {
+    if (!VARRTC.LTCHM) {
+      RDHMRTC();
+      VARRTC.LASTUNIX  = now.unixtime();
+      VARRTC.LTCHM     = true;
+    }
+    VARRTC.DELTATIME = now.unixtime() - VARRTC.LASTUNIX;
+  }
+  else {
+    VARRTC.LTCHM     = false;
+    VARRTC.DELTATIME = 0;
+  }
+  //saat nyala lg waktunya blm update (SVDHM)
+  VARRTC.SEC  = (VARRTC.SVDHM + VARRTC.DELTATIME) % MINDIV;
+  VARRTC.MIN  = ((VARRTC.SVDHM + VARRTC.DELTATIME) % HOURDIV) / MINDIV;
+  VARRTC.HR   = (VARRTC.SVDHM + VARRTC.DELTATIME) / HOURDIV;
+}
+
+void RDHMRTC()
+{
+  uint8_t ADDR  = 0;
+  byte MEMADDR = RDBYTE(AT24C32, 0);
+
+  while (MEMADDR != 0)
+  {
+    VARRTC.RCVDATA[VARRTC.SEQ] = MEMADDR;
+    ADDR++;
+    VARRTC.SEQ++;
+    MEMADDR = RDBYTE(AT24C32, ADDR);
+  }
+  VARRTC.SEQ = 0;
+  String STRHM(VARRTC.RCVDATA);
+  VARRTC.SVDHM = STRHM.toInt();
+}
+
+char HMCONV(unsigned long HMVAL)
+{
+  String STRHM;
+  STRHM = String(HMVAL);
+  STRHM.toCharArray(VARRTC.DATA2WRT, sizeof(VARRTC.DATA2WRT));
+
+  return VARRTC.DATA2WRT;
+}
+
+void HMWRT(unsigned long DATA2CONV)
+{
+  HMCONV(DATA2CONV);
+  WRTPAGE(AT24C32, 0, (byte *)VARRTC.DATA2WRT, sizeof(VARRTC.DATA2WRT));
+  delay(100);
+}
