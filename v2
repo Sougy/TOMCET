@@ -10,6 +10,8 @@ RTC_DS3231 rtc;
 
 //Engine status & Sensor status
 String ENGSTAT, TRIGSTAT;
+unsigned long PREVSEN = 0;
+unsigned long PREVSET = 0;
 
 typedef struct
 {
@@ -18,7 +20,6 @@ typedef struct
   bool INHM   = false;
   bool START  = false;
   bool END    = false;
-  bool LTCVAL = false;
   uint8_t VAL = 0;
   uint8_t SEQ = 0;
   uint8_t I;
@@ -29,6 +30,8 @@ typedef struct
 
 typedef struct
 {
+  String CURTIME;
+  String CURDATE;
   uint8_t SEC;
   uint8_t MIN;
   uint8_t SEQ;
@@ -58,7 +61,8 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
-
+  LTCSEN();
+  PROG();
 }
 
 void SERFLUSH(void)
@@ -111,7 +115,6 @@ void LTCSER()
     VARSER.MSG[VARSER.IDX]  = '\0';
     VARSER.START            = false;
     VARSER.END              = false;
-    VARSER.LTCVAL           = true;
   }
 }
 
@@ -137,39 +140,51 @@ void PARSETHM()
         VARSER.SETDATA[VARSER.SEQ] = VARSER.SETDATA[VARSER.SEQ] + VARSER.DATAIN[VARSER.I];
       }
     }
-    VARSER.SEQ                  = 0;
     //B4 flushing(SETDATA[0]) need to be saved to rtc saving var
-    VARSER.SETDATA[VARSER.SEQ]  = "";
-    VARSER.DATAIN               = "";
+    VARRTC.SVDHM          = 0;
+    VARRTC.SVDHM          = VARSER.SETDATA[0].toInt();
+    HMWRT(VARRTC.SVDHM);
+    VARSER.SEQ            = 0;
+    VARSER.SETDATA[0]     = "";
+    VARSER.DATAIN         = "";
   }
 }
 
 void LTCSEN()
 {
-  if ((!(PIND & (1 << PIND3))) && (PIND & (1 << PIND7)) && (PIND & (1 << PIND4)))
-  {
-    ENGSTAT   = "IN";
-    TRIGSTAT  = "";
-    Serial.print(String(ENGSTAT) + "|" + TRIGSTAT);
+  HMS();
+
+  if (millis() - PREVSEN >= 1000) {
+    if ((!(PIND & (1 << PIND3))) && (PIND & (1 << PIND7)) && (PIND & (1 << PIND4)))
+    {
+      ENGSTAT   = "IN";
+      TRIGSTAT  = "";
+      Serial.print(String(VARRTC.CURDATE) + "|" + VARRTC.CURTIME + "|" + VARRTC.HR + "|" +
+                   VARRTC.MIN + "|" + VARRTC.SEC + "|" + ENGSTAT + "|" + TRIGSTAT + "|");
+    }
+    else if ((!(PIND & (1 << PIND3))) && (!(PIND & (1 << PIND7))) && (PIND & (1 << PIND4)))
+    {
+      ENGSTAT = "RG";
+      TRIGSTAT  = "";
+      Serial.print(String(VARRTC.CURDATE) + "|" + VARRTC.CURTIME + "|" + VARRTC.HR + "|" +
+                   VARRTC.MIN + "|" + VARRTC.SEC + "|" + ENGSTAT + "|" + TRIGSTAT + "|");
+    }
+    else if ((!(PIND & (1 << PIND3))) && (!(PIND & (1 << PIND7))) && (!(PIND & (1 << PIND4))))
+    {
+      ENGSTAT = "RG";
+      ENGSTAT = "DG";
+      Serial.print(String(VARRTC.CURDATE) + "|" + VARRTC.CURTIME + "|" + VARRTC.HR + "|" +
+                   VARRTC.MIN + "|" + VARRTC.SEC + "|" + ENGSTAT + "|" + TRIGSTAT + "|");
+    }
+    else {
+      ENGSTAT = "IF";
+      ENGSTAT = "";
+      Serial.print(String(VARRTC.CURDATE) + "|" + VARRTC.CURTIME + "|" + VARRTC.HR + "|" +
+                   VARRTC.MIN + "|" + VARRTC.SEC + "|" + ENGSTAT + "|" + TRIGSTAT + "|");
+    }
+    PREVSEN = millis();
+    Serial.println();
   }
-  else if ((!(PIND & (1 << PIND3))) && (!(PIND & (1 << PIND7))) && (PIND & (1 << PIND4)))
-  {
-    ENGSTAT = "RG";
-    TRIGSTAT  = "";
-    Serial.print(String(ENGSTAT) + "|" + TRIGSTAT);
-  }
-  else if ((!(PIND & (1 << PIND3))) && (!(PIND & (1 << PIND7))) && (!(PIND & (1 << PIND4))))
-  {
-    ENGSTAT = "RG";
-    ENGSTAT = "DG";
-    Serial.print(String(ENGSTAT) + "|" + TRIGSTAT);
-  }
-  else {
-    ENGSTAT = "IF";
-    ENGSTAT = "";
-    Serial.print(String(ENGSTAT) + "|" + TRIGSTAT);
-  }
-  Serial.println();
 }
 
 void WRTBYTE(int DVCADDR, unsigned int EEADDR, byte DATA)
@@ -225,19 +240,22 @@ void HMS()
   if ((!(PIND & (1 << PIND3))) && (!(PIND & (1 << PIND7)))) {
     if (!VARRTC.LTCHM) {
       RDHMRTC();
-      VARRTC.LASTUNIX  = now.unixtime();
-      VARRTC.LTCHM     = true;
+      VARRTC.SVDHM += VARRTC.DELTATIME;
+      VARRTC.LASTUNIX   = 0;
+      VARRTC.LASTUNIX   = now.unixtime();
+      VARRTC.LTCHM      = true;
     }
     VARRTC.DELTATIME = now.unixtime() - VARRTC.LASTUNIX;
   }
   else {
     VARRTC.LTCHM     = false;
-    VARRTC.DELTATIME = 0;
   }
-  //saat nyala lg waktunya blm update (SVDHM)
-  VARRTC.SEC  = (VARRTC.SVDHM + VARRTC.DELTATIME) % MINDIV;
-  VARRTC.MIN  = ((VARRTC.SVDHM + VARRTC.DELTATIME) % HOURDIV) / MINDIV;
-  VARRTC.HR   = (VARRTC.SVDHM + VARRTC.DELTATIME) / HOURDIV;
+  //saat nyala lg waktunya blm update (SVDHM) //closed need to test NOTE: RESET DELTATIME in 2
+  VARRTC.CURTIME  = String(now.hour()) + ":" + now.minute() + ":" + now.second();
+  VARRTC.CURDATE  = String(now.year()) + "-" + now.month() + ":" + now.second();
+  VARRTC.SEC      = (VARRTC.SVDHM + VARRTC.DELTATIME) % MINDIV;
+  VARRTC.MIN      = ((VARRTC.SVDHM + VARRTC.DELTATIME) % HOURDIV) / MINDIV;
+  VARRTC.HR       = (VARRTC.SVDHM + VARRTC.DELTATIME) / HOURDIV;
 }
 
 void RDHMRTC()
@@ -269,6 +287,35 @@ char HMCONV(unsigned long HMVAL)
 void HMWRT(unsigned long DATA2CONV)
 {
   HMCONV(DATA2CONV);
+  delay(100);
   WRTPAGE(AT24C32, 0, (byte *)VARRTC.DATA2WRT, sizeof(VARRTC.DATA2WRT));
   delay(100);
+}
+
+void PROG()
+{
+  LTCSER();
+
+  switch (VARSER.VAL) {
+    case 3:
+      SERFLUSH();
+      while (!VARSER.INHM) {
+        if (millis() - PREVSET >= 1000) {
+          Serial.println('#');
+          PARSETHM();
+          PREVSET = millis();
+        }
+      }
+      VARSER.INHM = false;
+      VARSER.VAL = 0;
+
+      break;
+
+    case 2:
+      HMWRT(VARRTC.SVDHM + VARRTC.DELTATIME);
+      VARRTC.DELTATIME  = 0;
+      VARSER.VAL        = 0;
+
+      break;
+  }
 }
