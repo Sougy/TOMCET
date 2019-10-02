@@ -3,7 +3,6 @@
 
 #define HOURDIV 3600
 #define MINDIV 60
-#define AT24C32 0x57
 
 DateTime now;
 RTC_DS3231 rtc;
@@ -37,8 +36,8 @@ typedef struct
   uint8_t MIN;
   uint8_t SEQ;
   uint32_t HR;
-  char RCVDATA[12];
-  char DATA2WRT[12];
+  char RCVDATA[15];
+  char DATA2WRT[15];
   unsigned long SVDHM;
   unsigned long LASTUNIX;
   unsigned long DELTATIME;
@@ -265,6 +264,7 @@ void HMS()
     VARRTC.DELTATIME = now.unixtime() - VARRTC.LASTUNIX;
     if (millis() - PREVTES >= 1000) {
       Serial.println(String("DELTATIME: ") + VARRTC.DELTATIME);
+      Serial.println(String("ELAPSED: ") + VARRTC.ELAPSED);
       PREVTES = millis();
     }
   }
@@ -282,14 +282,14 @@ void HMS()
 void RDHMRTC()
 {
   uint8_t ADDR  = 0;
-  byte MEMADDR = RDBYTE(AT24C32, 0);
+  byte MEMADDR = RDBYTE(0x57, 0);
 
   while (MEMADDR != 0)
   {
     VARRTC.RCVDATA[VARRTC.SEQ] = MEMADDR;
     ADDR++;
     VARRTC.SEQ++;
-    MEMADDR = RDBYTE(AT24C32, ADDR);
+    MEMADDR = RDBYTE(0x57, ADDR);
   }
   VARRTC.SEQ = 0;
   String STRHM(VARRTC.RCVDATA);
@@ -311,7 +311,7 @@ void HMWRT(unsigned long DATA2CONV)
 {
   HMCONV(DATA2CONV);
   delay(100);
-  WRTPAGE(AT24C32, 0, (byte *)VARRTC.DATA2WRT, sizeof(VARRTC.DATA2WRT));
+  WRTPAGE(0x57, 0, (byte *)VARRTC.DATA2WRT, sizeof(VARRTC.DATA2WRT));
   delay(100);
   Serial.println("DONE SAVE");
 }
@@ -339,12 +339,15 @@ void PROG()
       break;
 
     case 2:
-      HMWRT(VARRTC.SVDHM+VARRTC.ELAPSED);
+      RDHMRTC();
+      Serial.println(String("SAVED HM: ") + VARRTC.SVDHM);
+      VARRTC.SVDHM+=VARRTC.DELTATIME;
+      HMWRT(VARRTC.SVDHM);
+      RDHMRTC();
+      Serial.println(String("DONE LOGOUT & SAVE: ")+VARRTC.SVDHM);
       VARRTC.ELAPSED    = 0;
       VARSER.VAL        = 0;
-      RDHMRTC();
-      Serial.println("DONE LOGOUT & SAVE");
-      Serial.println(String("SAVED HM: ") + VARRTC.SVDHM);
+
       break;
   }
 }
