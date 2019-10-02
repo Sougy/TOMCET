@@ -42,6 +42,7 @@ typedef struct
   unsigned long SVDHM;
   unsigned long LASTUNIX;
   unsigned long DELTATIME;
+  unsigned long ELAPSED;
   bool LTCHM = false;
 
 } RTCOM; RTCOM VARRTC;
@@ -254,7 +255,8 @@ void HMS()
   if ((!(PIND & (1 << PIND3))) && (!(PIND & (1 << PIND7)))) {
     if (!VARRTC.LTCHM) {
       RDHMRTC();
-      VARRTC.SVDHM += VARRTC.DELTATIME;
+      VARRTC.ELAPSED += VARRTC.DELTATIME;
+      VARRTC.SVDHM += VARRTC.ELAPSED;
       Serial.println(String("SVDHM+DELTATIME: ") + VARRTC.SVDHM);
       VARRTC.LASTUNIX   = 0;
       VARRTC.LASTUNIX   = now.unixtime();
@@ -322,6 +324,7 @@ void PROG()
     case 3:
       SERFLUSH();
       VARRTC.DELTATIME  = 0;
+      VARRTC.ELAPSED    = 0;
       while (!VARSER.INHM) {
         if (millis() - PREVSET >= 1000) {
           Serial.println('#');
@@ -336,11 +339,10 @@ void PROG()
       break;
 
     case 2:
-      HMWRT(VARRTC.SVDHM + VARRTC.DELTATIME);
+      HMWRT(VARRTC.SVDHM + VARRTC.ELAPSED);
       VARSER.VAL        = 0;
       Serial.println("DONE LOGOUT & SAVE");
       break;
   }
 }
 
-//tesssssss
