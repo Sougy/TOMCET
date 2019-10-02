@@ -111,6 +111,7 @@ void LTCSER()
   if (VARSER.START && VARSER.END)
   {
     VARSER.VAL              = atoi(VARSER.MSG);
+    Serial.println(String("VAL: ")+VARSER.VAL);
     VARSER.IDX              = 0;
     VARSER.MSG[VARSER.IDX]  = '\0';
     VARSER.START            = false;
@@ -143,6 +144,7 @@ void PARSETHM()
     //B4 flushing(SETDATA[0]) need to be saved to rtc saving var
     VARRTC.SVDHM          = 0;
     VARRTC.SVDHM          = VARSER.SETDATA[0].toInt();
+    Serial.println(String("SVDHM: ")+VARRTC.SVDHM);
     HMWRT(VARRTC.SVDHM);
     VARSER.SEQ            = 0;
     VARSER.SETDATA[0]     = "";
@@ -241,11 +243,13 @@ void HMS()
     if (!VARRTC.LTCHM) {
       RDHMRTC();
       VARRTC.SVDHM += VARRTC.DELTATIME;
+      Serial.println(String("SVDHM+DELTATIME: ")+VARRTC.SVDHM);
       VARRTC.LASTUNIX   = 0;
       VARRTC.LASTUNIX   = now.unixtime();
       VARRTC.LTCHM      = true;
     }
     VARRTC.DELTATIME = now.unixtime() - VARRTC.LASTUNIX;
+    Serial.println(String("DELTATIME: ")+VARRTC.DELTATIME);
   }
   else {
     VARRTC.LTCHM     = false;
@@ -273,6 +277,7 @@ void RDHMRTC()
   VARRTC.SEQ = 0;
   String STRHM(VARRTC.RCVDATA);
   VARRTC.SVDHM = STRHM.toInt();
+  Serial.println(String("Read HM RTC: ")+VARRTC.SVDHM);
 }
 
 char HMCONV(unsigned long HMVAL)
@@ -280,6 +285,7 @@ char HMCONV(unsigned long HMVAL)
   String STRHM;
   STRHM = String(HMVAL);
   STRHM.toCharArray(VARRTC.DATA2WRT, sizeof(VARRTC.DATA2WRT));
+  Serial.println(String("DATA to WRT(char): ")+VARRTC.DATA2WRT);
 
   return VARRTC.DATA2WRT;
 }
@@ -290,6 +296,7 @@ void HMWRT(unsigned long DATA2CONV)
   delay(100);
   WRTPAGE(AT24C32, 0, (byte *)VARRTC.DATA2WRT, sizeof(VARRTC.DATA2WRT));
   delay(100);
+  Serial.println("DONE SAVE");
 }
 
 void PROG()
@@ -306,6 +313,7 @@ void PROG()
           PREVSET = millis();
         }
       }
+      Serial.println("DONE SET HM");
       VARSER.INHM = false;
       VARSER.VAL = 0;
 
@@ -315,7 +323,7 @@ void PROG()
       HMWRT(VARRTC.SVDHM + VARRTC.DELTATIME);
       VARRTC.DELTATIME  = 0;
       VARSER.VAL        = 0;
-
+      Serial.println("DONE LOGOUT & SAVE");
       break;
   }
 }
