@@ -4,7 +4,7 @@
 #define HOURDIV 3600
 #define MINDIV 60
 #define AT24C32 0x57
-
+//tes
 DateTime now;
 RTC_DS3231 rtc;
 
