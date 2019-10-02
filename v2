@@ -12,6 +12,7 @@ RTC_DS3231 rtc;
 String ENGSTAT, TRIGSTAT;
 unsigned long PREVSEN = 0;
 unsigned long PREVSET = 0;
+unsigned long PREVTES = 0;
 
 typedef struct
 {
@@ -57,6 +58,8 @@ void setup() {
   Wire.begin();
   rtc.begin();
   Serial.begin(9600);
+  RDHMRTC();
+  
 }
 
 void loop() {
@@ -111,7 +114,7 @@ void LTCSER()
   if (VARSER.START && VARSER.END)
   {
     VARSER.VAL              = atoi(VARSER.MSG);
-    Serial.println(String("VAL: ")+VARSER.VAL);
+    Serial.println(String("VAL: ") + VARSER.VAL);
     VARSER.IDX              = 0;
     VARSER.MSG[VARSER.IDX]  = '\0';
     VARSER.START            = false;
@@ -144,7 +147,7 @@ void PARSETHM()
     //B4 flushing(SETDATA[0]) need to be saved to rtc saving var
     VARRTC.SVDHM          = 0;
     VARRTC.SVDHM          = VARSER.SETDATA[0].toInt();
-    Serial.println(String("SVDHM: ")+VARRTC.SVDHM);
+    Serial.println(String("SVDHM: ") + VARRTC.SVDHM);
     HMWRT(VARRTC.SVDHM);
     VARSER.SEQ            = 0;
     VARSER.SETDATA[0]     = "";
@@ -155,8 +158,17 @@ void PARSETHM()
 void LTCSEN()
 {
   HMS();
+  uint8_t PIN3ACC, PIN4DUMP, PIN7ALT;
+  PIN3ACC   = digitalRead(3);
+  PIN4DUMP  = digitalRead(4);
+  PIN7ALT   = digitalRead(7);
+
 
   if (millis() - PREVSEN >= 1000) {
+    Serial.println(String("PIN3ACC: ") + PIN3ACC);
+    Serial.println(String("PIN4DUMP: ") + PIN4DUMP);
+    Serial.println(String("PIN7ALT: ") + PIN7ALT);
+
     if ((!(PIND & (1 << PIND3))) && (PIND & (1 << PIND7)) && (PIND & (1 << PIND4)))
     {
       ENGSTAT   = "IN";
@@ -174,13 +186,13 @@ void LTCSEN()
     else if ((!(PIND & (1 << PIND3))) && (!(PIND & (1 << PIND7))) && (!(PIND & (1 << PIND4))))
     {
       ENGSTAT = "RG";
-      ENGSTAT = "DG";
+      TRIGSTAT = "DG";
       Serial.print(String(VARRTC.CURDATE) + "|" + VARRTC.CURTIME + "|" + VARRTC.HR + "|" +
                    VARRTC.MIN + "|" + VARRTC.SEC + "|" + ENGSTAT + "|" + TRIGSTAT + "|");
     }
     else {
       ENGSTAT = "IF";
-      ENGSTAT = "";
+      TRIGSTAT = "";
       Serial.print(String(VARRTC.CURDATE) + "|" + VARRTC.CURTIME + "|" + VARRTC.HR + "|" +
                    VARRTC.MIN + "|" + VARRTC.SEC + "|" + ENGSTAT + "|" + TRIGSTAT + "|");
     }
@@ -243,13 +255,16 @@ void HMS()
     if (!VARRTC.LTCHM) {
       RDHMRTC();
       VARRTC.SVDHM += VARRTC.DELTATIME;
-      Serial.println(String("SVDHM+DELTATIME: ")+VARRTC.SVDHM);
+      Serial.println(String("SVDHM+DELTATIME: ") + VARRTC.SVDHM);
       VARRTC.LASTUNIX   = 0;
       VARRTC.LASTUNIX   = now.unixtime();
       VARRTC.LTCHM      = true;
     }
     VARRTC.DELTATIME = now.unixtime() - VARRTC.LASTUNIX;
-    Serial.println(String("DELTATIME: ")+VARRTC.DELTATIME);
+    if(millis() - PREVTES >= 1000){
+      Serial.println(String("DELTATIME: ") + VARRTC.DELTATIME);
+      PREVTES = millis();
+    }
   }
   else {
     VARRTC.LTCHM     = false;
@@ -277,7 +292,7 @@ void RDHMRTC()
   VARRTC.SEQ = 0;
   String STRHM(VARRTC.RCVDATA);
   VARRTC.SVDHM = STRHM.toInt();
-  Serial.println(String("Read HM RTC: ")+VARRTC.SVDHM);
+  Serial.println(String("Read HM RTC: ") + VARRTC.SVDHM);
 }
 
 char HMCONV(unsigned long HMVAL)
@@ -285,7 +300,7 @@ char HMCONV(unsigned long HMVAL)
   String STRHM;
   STRHM = String(HMVAL);
   STRHM.toCharArray(VARRTC.DATA2WRT, sizeof(VARRTC.DATA2WRT));
-  Serial.println(String("DATA to WRT(char): ")+VARRTC.DATA2WRT);
+  Serial.println(String("DATA to WRT(char): ") + VARRTC.DATA2WRT);
 
   return VARRTC.DATA2WRT;
 }
@@ -306,6 +321,7 @@ void PROG()
   switch (VARSER.VAL) {
     case 3:
       SERFLUSH();
+      VARRTC.DELTATIME  = 0;
       while (!VARSER.INHM) {
         if (millis() - PREVSET >= 1000) {
           Serial.println('#');
@@ -321,7 +337,6 @@ void PROG()
 
     case 2:
       HMWRT(VARRTC.SVDHM + VARRTC.DELTATIME);
-      VARRTC.DELTATIME  = 0;
       VARSER.VAL        = 0;
       Serial.println("DONE LOGOUT & SAVE");
       break;
