@@ -60,7 +60,7 @@ void setup() {
   rtc.begin();
   Serial.begin(9600);
   RDHMRTC();
-  
+
 }
 
 void loop() {
@@ -263,7 +263,7 @@ void HMS()
       VARRTC.LTCHM      = true;
     }
     VARRTC.DELTATIME = now.unixtime() - VARRTC.LASTUNIX;
-    if(millis() - PREVTES >= 1000){
+    if (millis() - PREVTES >= 1000) {
       Serial.println(String("DELTATIME: ") + VARRTC.DELTATIME);
       PREVTES = millis();
     }
@@ -339,9 +339,12 @@ void PROG()
       break;
 
     case 2:
-      HMWRT(VARRTC.SVDHM + VARRTC.ELAPSED);
+      HMWRT(VARRTC.SVDHM+VARRTC.ELAPSED);
+      VARRTC.ELAPSED    = 0;
       VARSER.VAL        = 0;
+      RDHMRTC();
       Serial.println("DONE LOGOUT & SAVE");
+      Serial.println(String("SAVED HM: ") + VARRTC.SVDHM);
       break;
   }
 }
