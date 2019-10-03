@@ -3,6 +3,8 @@
 
 #define HOURDIV 3600
 #define MINDIV 60
+#define X24C32 0x57
+#define PRTIME 1000
 
 DateTime now;
 RTC_DS3231 rtc;
@@ -40,7 +42,6 @@ typedef struct
   unsigned long LASTUNIX;
   unsigned long DELTATIME;
   unsigned long ELAPSED;
-  unsigned long WRTHM;
   bool LTCHM = false;
 
 } RTCOM; RTCOM VARRTC;
@@ -65,7 +66,6 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
-  LTCSEN();
   PROG();
 }
 
@@ -115,7 +115,7 @@ void LTCSER()
   if (VARSER.START && VARSER.END)
   {
     VARSER.VAL              = atoi(VARSER.MSG);
-    Serial.println(String("VAL: ") + VARSER.VAL);
+    //Serial.println(String("VAL: ") + VARSER.VAL); //for debugging only
     VARSER.IDX              = 0;
     VARSER.MSG[VARSER.IDX]  = '\0';
     VARSER.START            = false;
@@ -148,7 +148,7 @@ void PARSETHM()
     //B4 flushing(SETDATA[0]) need to be saved to rtc saving var
     VARRTC.SVDHM          = 0;
     VARRTC.SVDHM          = VARSER.SETDATA[0].toInt();
-    Serial.println(String("SVDHM: ") + VARRTC.SVDHM);
+    //Serial.println(String("SVDHM: ") + VARRTC.SVDHM); //for debugging only
     HMWRT(VARRTC.SVDHM);
     VARSER.SEQ            = 0;
     VARSER.SETDATA[0]     = "";
@@ -159,40 +159,49 @@ void PARSETHM()
 void LTCSEN()
 {
   HMS();
-  uint8_t PIN3ACC, PIN4DUMP, PIN7ALT, PIN5LOAD;
-  PIN3ACC   = digitalRead(3);
-  PIN4DUMP  = digitalRead(4);
-  PIN7ALT   = digitalRead(7);
-  PIN5LOAD  = digitalRead(5);
+  /*for debugging only
+    uint8_t PIN3ACC, PIN4DUMP, PIN7ALT, PIN5LOAD;
+    PIN3ACC   = digitalRead(3);
+    PIN4DUMP  = digitalRead(4);
+    PIN7ALT   = digitalRead(7);
+    PIN5LOAD  = digitalRead(5);*/
 
 
-  if (millis() - PREVSEN >= 1000) {
-    Serial.println(String("DELTATIME: ") + VARRTC.DELTATIME);
-    Serial.println(String("ELAPSED: ") + VARRTC.ELAPSED);
-    Serial.println(VARRTC.SVDHM+VARRTC.DELTATIME);
-    Serial.println(String("PIN3ACC: ") + PIN3ACC);
-    Serial.println(String("PIN4DUMP: ") + PIN4DUMP);
-    Serial.println(String("PIN7ALT: ") + PIN7ALT);
-    Serial.println(String("PIN5LOAD: ") + PIN5LOAD);
+  if ((unsigned long)(millis() - PREVSEN) > PRTIME) {
+    /*for debugging only
+      Serial.println(String("DELTATIME: ") + VARRTC.DELTATIME);
+      Serial.println(String("ELAPSED: ") + VARRTC.ELAPSED);
+      Serial.println(String("HMNOWSEC: ") + (VARRTC.SVDHM + VARRTC.DELTATIME));
+      Serial.println(String("PIN3ACC: ") + PIN3ACC);
+      Serial.println(String("PIN4DUMP: ") + PIN4DUMP);
+      Serial.println(String("PIN7ALT: ") + PIN7ALT);
+      Serial.println(String("PIN5LOAD: ") + PIN5LOAD);*/
 
-    if ((!(PIND & (1 << PIND3))) && (PIND & (1 << PIND7)) && (PIND & (1 << PIND4)))
+    if ((!(PIND & (1 << PIND3))) && (PIND & (1 << PIND7)) && (PIND & (1 << PIND4)) && (!(PIND & (1 << PIND5))))
     {
       ENGSTAT   = "IN";
       TRIGSTAT  = "";
       Serial.print(String(VARRTC.CURDATE) + "|" + VARRTC.CURTIME + "|" + VARRTC.HR + "|" +
                    VARRTC.MIN + "|" + VARRTC.SEC + "|" + ENGSTAT + "|" + TRIGSTAT + "|");
     }
-    else if ((!(PIND & (1 << PIND3))) && (!(PIND & (1 << PIND7))) && (PIND & (1 << PIND4)))
+    else if ((!(PIND & (1 << PIND3))) && (!(PIND & (1 << PIND7))) && (PIND & (1 << PIND4)) && (!(PIND & (1 << PIND5))))
     {
       ENGSTAT = "RG";
       TRIGSTAT  = "";
       Serial.print(String(VARRTC.CURDATE) + "|" + VARRTC.CURTIME + "|" + VARRTC.HR + "|" +
                    VARRTC.MIN + "|" + VARRTC.SEC + "|" + ENGSTAT + "|" + TRIGSTAT + "|");
     }
-    else if ((!(PIND & (1 << PIND3))) && (!(PIND & (1 << PIND7))) && (!(PIND & (1 << PIND4))))
+    else if ((!(PIND & (1 << PIND3))) && (!(PIND & (1 << PIND7))) && (!(PIND & (1 << PIND4))) && (!(PIND & (1 << PIND5))))
     {
       ENGSTAT = "RG";
       TRIGSTAT = "DG";
+      Serial.print(String(VARRTC.CURDATE) + "|" + VARRTC.CURTIME + "|" + VARRTC.HR + "|" +
+                   VARRTC.MIN + "|" + VARRTC.SEC + "|" + ENGSTAT + "|" + TRIGSTAT + "|");
+    }
+    else if ((!(PIND & (1 << PIND3))) && (!(PIND & (1 << PIND7))) && (PIND & (1 << PIND4)) && (PIND & (1 << PIND5)))
+    {
+      ENGSTAT = "RG";
+      TRIGSTAT = "LG";
       Serial.print(String(VARRTC.CURDATE) + "|" + VARRTC.CURTIME + "|" + VARRTC.HR + "|" +
                    VARRTC.MIN + "|" + VARRTC.SEC + "|" + ENGSTAT + "|" + TRIGSTAT + "|");
     }
@@ -261,7 +270,7 @@ void HMS()
       RDHMRTC();
       VARRTC.ELAPSED += VARRTC.DELTATIME;
       VARRTC.SVDHM += VARRTC.ELAPSED;
-      Serial.println(String("SVDHM+DELTATIME: ") + VARRTC.SVDHM);
+      //Serial.println(String("SVDHM+DELTATIME: ") + VARRTC.SVDHM); //for debugging only
       VARRTC.LASTUNIX   = 0;
       VARRTC.LASTUNIX   = now.unixtime();
       VARRTC.LTCHM      = true;
@@ -282,19 +291,19 @@ void HMS()
 void RDHMRTC()
 {
   uint8_t ADDR  = 0;
-  byte MEMADDR = RDBYTE(0x57, 0);
+  byte MEMADDR = RDBYTE(X24C32, 0);
 
   while (MEMADDR != 0)
   {
     VARRTC.RCVDATA[VARRTC.SEQ] = MEMADDR;
     ADDR++;
     VARRTC.SEQ++;
-    MEMADDR = RDBYTE(0x57, ADDR);
+    MEMADDR = RDBYTE(X24C32, ADDR);
   }
   VARRTC.SEQ = 0;
   String STRHM(VARRTC.RCVDATA);
   VARRTC.SVDHM = STRHM.toInt();
-  Serial.println(String("Read HM RTC: ") + VARRTC.SVDHM);
+  //Serial.println(String("Read HM RTC: ") + VARRTC.SVDHM); //for debugging only
 }
 
 void HMWRT(unsigned long DATA2CONV)
@@ -303,14 +312,15 @@ void HMWRT(unsigned long DATA2CONV)
   String STRHM;
   STRHM = String(DATA2CONV);
   STRHM.toCharArray(DATA2WRT, sizeof(DATA2WRT));
-  Serial.println(String("DATA2WRT: ") + DATA2WRT);
-  WRTPAGE(0x57, 0, (byte *)DATA2WRT, sizeof(DATA2WRT));
+  //Serial.println(String("DATA2WRT: ") + DATA2WRT); //for debugging only
+  WRTPAGE(X24C32, 0, (byte *)DATA2WRT, sizeof(DATA2WRT));
   delay(100);
-  Serial.println("DONE SAVE");
+  //Serial.println("DONE SAVE"); //for debugging only
 }
 
 void PROG()
 {
+  LTCSEN();
   LTCSER();
 
   switch (VARSER.VAL) {
@@ -319,13 +329,13 @@ void PROG()
       VARRTC.DELTATIME  = 0;
       VARRTC.ELAPSED    = 0;
       while (!VARSER.INHM) {
-        if (millis() - PREVSET >= 1000) {
+        if ((unsigned long)(millis() - PREVSET) > PRTIME) {
           Serial.println('#');
           PARSETHM();
           PREVSET = millis();
         }
       }
-      Serial.println("DONE SET HM");
+      //Serial.println("DONE SET HM"); //for debugging only
       VARSER.INHM = false;
       VARSER.VAL = 0;
 
@@ -339,7 +349,7 @@ void PROG()
       }
       VARRTC.ELAPSED    = 0;
       VARSER.VAL        = 0;
-      
+
       break;
   }
 }
