@@ -186,6 +186,7 @@ void LTCSEN()
     }
     else if ((!(PIND & (1 << PIND3))) && (!(PIND & (1 << PIND7))) && (PIND & (1 << PIND4)) && (!(PIND & (1 << PIND5))))
     {
+      PORTD ^= (1<<PIND6);
       ENGSTAT = "RG";
       TRIGSTAT  = "";
       Serial.print(String(VARRTC.CURDATE) + "|" + VARRTC.CURTIME + "|" + VARRTC.HR + ":" +
@@ -282,7 +283,7 @@ void HMS()
   }
   //saat nyala lg waktunya blm update (SVDHM) //closed need to test NOTE: RESET DELTATIME in 2
   VARRTC.CURTIME  = String(now.hour()) + ":" + now.minute() + ":" + now.second();
-  VARRTC.CURDATE  = String(now.year()) + "-" + now.month() + "-" + now.second();
+  VARRTC.CURDATE  = String(now.year()) + "-" + now.month() + "-" + now.day();
   VARRTC.SEC      = (VARRTC.SVDHM + VARRTC.DELTATIME) % MINDIV;
   VARRTC.MIN      = ((VARRTC.SVDHM + VARRTC.DELTATIME) % HOURDIV) / MINDIV;
   VARRTC.HR       = (VARRTC.SVDHM + VARRTC.DELTATIME) / HOURDIV;
@@ -331,11 +332,13 @@ void PROG()
       while (!VARSER.INHM) {
         if ((unsigned long)(millis() - PREVSET) > PRTIME) {
           Serial.println('#');
+          PORTD ^= (1<<PIND6);
           PARSETHM();
           PREVSET = millis();
         }
       }
       //Serial.println("DONE SET HM"); //for debugging only
+      PORTD &= ~(1<<PIND6);
       VARSER.INHM = false;
       VARSER.VAL = 0;
 
