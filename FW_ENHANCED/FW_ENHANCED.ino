@@ -181,35 +181,35 @@ void LTCSEN()
     {
       ENGSTAT   = "IN";
       TRIGSTAT  = "";
-      Serial.print(String(VARRTC.CURDATE) + "|" + VARRTC.CURTIME + "|" + VARRTC.HR + "|" +
-                   VARRTC.MIN + "|" + VARRTC.SEC + "|" + ENGSTAT + "|" + TRIGSTAT + "|");
+      Serial.print(String(VARRTC.CURDATE) + "|" + VARRTC.CURTIME + "|" + VARRTC.HR + ":" +
+                   VARRTC.MIN + ":" + VARRTC.SEC + "|" + ENGSTAT + "|" + TRIGSTAT + "|");
     }
     else if ((!(PIND & (1 << PIND3))) && (!(PIND & (1 << PIND7))) && (PIND & (1 << PIND4)) && (!(PIND & (1 << PIND5))))
     {
       ENGSTAT = "RG";
       TRIGSTAT  = "";
-      Serial.print(String(VARRTC.CURDATE) + "|" + VARRTC.CURTIME + "|" + VARRTC.HR + "|" +
-                   VARRTC.MIN + "|" + VARRTC.SEC + "|" + ENGSTAT + "|" + TRIGSTAT + "|");
+      Serial.print(String(VARRTC.CURDATE) + "|" + VARRTC.CURTIME + "|" + VARRTC.HR + ":" +
+                   VARRTC.MIN + ":" + VARRTC.SEC + "|" + ENGSTAT + "|" + TRIGSTAT + "|");
     }
     else if ((!(PIND & (1 << PIND3))) && (!(PIND & (1 << PIND7))) && (!(PIND & (1 << PIND4))) && (!(PIND & (1 << PIND5))))
     {
       ENGSTAT = "RG";
       TRIGSTAT = "DG";
-      Serial.print(String(VARRTC.CURDATE) + "|" + VARRTC.CURTIME + "|" + VARRTC.HR + "|" +
-                   VARRTC.MIN + "|" + VARRTC.SEC + "|" + ENGSTAT + "|" + TRIGSTAT + "|");
+      Serial.print(String(VARRTC.CURDATE) + "|" + VARRTC.CURTIME + "|" + VARRTC.HR + ":" +
+                   VARRTC.MIN + ":" + VARRTC.SEC + "|" + ENGSTAT + "|" + TRIGSTAT + "|");
     }
     else if ((!(PIND & (1 << PIND3))) && (!(PIND & (1 << PIND7))) && (PIND & (1 << PIND4)) && (PIND & (1 << PIND5)))
     {
       ENGSTAT = "RG";
       TRIGSTAT = "LG";
-      Serial.print(String(VARRTC.CURDATE) + "|" + VARRTC.CURTIME + "|" + VARRTC.HR + "|" +
-                   VARRTC.MIN + "|" + VARRTC.SEC + "|" + ENGSTAT + "|" + TRIGSTAT + "|");
+      Serial.print(String(VARRTC.CURDATE) + "|" + VARRTC.CURTIME + "|" + VARRTC.HR + ":" +
+                   VARRTC.MIN + ":" + VARRTC.SEC + "|" + ENGSTAT + "|" + TRIGSTAT + "|");
     }
     else {
       ENGSTAT = "IF";
       TRIGSTAT = "";
-      Serial.print(String(VARRTC.CURDATE) + "|" + VARRTC.CURTIME + "|" + VARRTC.HR + "|" +
-                   VARRTC.MIN + "|" + VARRTC.SEC + "|" + ENGSTAT + "|" + TRIGSTAT + "|");
+      Serial.print(String(VARRTC.CURDATE) + "|" + VARRTC.CURTIME + "|" + VARRTC.HR + ":" +
+                   VARRTC.MIN + ":" + VARRTC.SEC + "|" + ENGSTAT + "|" + TRIGSTAT + "|");
     }
     PREVSEN = millis();
     Serial.println();
@@ -282,7 +282,7 @@ void HMS()
   }
   //saat nyala lg waktunya blm update (SVDHM) //closed need to test NOTE: RESET DELTATIME in 2
   VARRTC.CURTIME  = String(now.hour()) + ":" + now.minute() + ":" + now.second();
-  VARRTC.CURDATE  = String(now.year()) + "-" + now.month() + ":" + now.second();
+  VARRTC.CURDATE  = String(now.year()) + "-" + now.month() + "-" + now.second();
   VARRTC.SEC      = (VARRTC.SVDHM + VARRTC.DELTATIME) % MINDIV;
   VARRTC.MIN      = ((VARRTC.SVDHM + VARRTC.DELTATIME) % HOURDIV) / MINDIV;
   VARRTC.HR       = (VARRTC.SVDHM + VARRTC.DELTATIME) / HOURDIV;
