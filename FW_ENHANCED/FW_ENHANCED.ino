@@ -11,7 +11,6 @@ RTC_DS3231 rtc;
 String ENGSTAT, TRIGSTAT;
 unsigned long PREVSEN = 0;
 unsigned long PREVSET = 0;
-unsigned long PREVTES = 0;
 
 typedef struct
 {
@@ -37,11 +36,11 @@ typedef struct
   uint8_t SEQ;
   uint32_t HR;
   char RCVDATA[15];
-  char DATA2WRT[15];
   unsigned long SVDHM;
   unsigned long LASTUNIX;
   unsigned long DELTATIME;
   unsigned long ELAPSED;
+  unsigned long WRTHM;
   bool LTCHM = false;
 
 } RTCOM; RTCOM VARRTC;
@@ -51,10 +50,12 @@ void setup() {
   DDRD &= ~(1 << PIND3); //ACC
   DDRD &= ~(1 << PIND4); //DUMP
   DDRD &= ~(1 << PIND7); //ALT
+  DDRD &= ~(1 << PIND5); //LOAD
   DDRD  |= (1 << PIND6);
   PORTD |= (1 << PIND3);
   PORTD |= (1 << PIND4);
   PORTD |= (1 << PIND7);
+  PORTD &= ~(1 << PIND5);
   Wire.begin();
   rtc.begin();
   Serial.begin(9600);
@@ -158,16 +159,21 @@ void PARSETHM()
 void LTCSEN()
 {
   HMS();
-  uint8_t PIN3ACC, PIN4DUMP, PIN7ALT;
+  uint8_t PIN3ACC, PIN4DUMP, PIN7ALT, PIN5LOAD;
   PIN3ACC   = digitalRead(3);
   PIN4DUMP  = digitalRead(4);
   PIN7ALT   = digitalRead(7);
+  PIN5LOAD  = digitalRead(5);
 
 
   if (millis() - PREVSEN >= 1000) {
+    Serial.println(String("DELTATIME: ") + VARRTC.DELTATIME);
+    Serial.println(String("ELAPSED: ") + VARRTC.ELAPSED);
+    Serial.println(VARRTC.SVDHM+VARRTC.DELTATIME);
     Serial.println(String("PIN3ACC: ") + PIN3ACC);
     Serial.println(String("PIN4DUMP: ") + PIN4DUMP);
     Serial.println(String("PIN7ALT: ") + PIN7ALT);
+    Serial.println(String("PIN5LOAD: ") + PIN5LOAD);
 
     if ((!(PIND & (1 << PIND3))) && (PIND & (1 << PIND7)) && (PIND & (1 << PIND4)))
     {
@@ -211,16 +217,15 @@ void WRTBYTE(int DVCADDR, unsigned int EEADDR, byte DATA)
   Wire.endTransmission();
 }
 
-void WRTPAGE(int DVCADDR, unsigned int EEADDR, byte* DATA, byte LENGTH)
+void WRTPAGE(int DVCADDR, unsigned int ADDRPG, byte* DATA, byte LENGTH)
 {
   Wire.beginTransmission(DVCADDR);
-  Wire.write((int)(EEADDR >> 8));
-  Wire.write((int)(EEADDR & 0xFF));
+  Wire.write((int)(ADDRPG >> 8));
+  Wire.write((int)(ADDRPG & 0xFF));
   byte DATASEQ;
-  for (DATASEQ = 0; DATASEQ < LENGTH; DATASEQ++) {
+  for (DATASEQ = 0; DATASEQ < LENGTH; DATASEQ++)
     Wire.write(DATA[DATASEQ]);
-    Wire.endTransmission();
-  }
+  Wire.endTransmission();
 }
 
 byte RDBYTE(int DVCADDR, unsigned int EEADDR)
@@ -262,11 +267,6 @@ void HMS()
       VARRTC.LTCHM      = true;
     }
     VARRTC.DELTATIME = now.unixtime() - VARRTC.LASTUNIX;
-    if (millis() - PREVTES >= 1000) {
-      Serial.println(String("DELTATIME: ") + VARRTC.DELTATIME);
-      Serial.println(String("ELAPSED: ") + VARRTC.ELAPSED);
-      PREVTES = millis();
-    }
   }
   else {
     VARRTC.LTCHM     = false;
@@ -297,21 +297,14 @@ void RDHMRTC()
   Serial.println(String("Read HM RTC: ") + VARRTC.SVDHM);
 }
 
-char HMCONV(unsigned long HMVAL)
-{
-  String STRHM;
-  STRHM = String(HMVAL);
-  STRHM.toCharArray(VARRTC.DATA2WRT, sizeof(VARRTC.DATA2WRT));
-  Serial.println(String("DATA to WRT(char): ") + VARRTC.DATA2WRT);
-
-  return VARRTC.DATA2WRT;
-}
-
 void HMWRT(unsigned long DATA2CONV)
 {
-  HMCONV(DATA2CONV);
-  delay(100);
-  WRTPAGE(0x57, 0, (byte *)VARRTC.DATA2WRT, sizeof(VARRTC.DATA2WRT));
+  char DATA2WRT[12];
+  String STRHM;
+  STRHM = String(DATA2CONV);
+  STRHM.toCharArray(DATA2WRT, sizeof(DATA2WRT));
+  Serial.println(String("DATA2WRT: ") + DATA2WRT);
+  WRTPAGE(0x57, 0, (byte *)DATA2WRT, sizeof(DATA2WRT));
   delay(100);
   Serial.println("DONE SAVE");
 }
@@ -339,15 +332,14 @@ void PROG()
       break;
 
     case 2:
-      RDHMRTC();
-      Serial.println(String("SAVED HM: ") + VARRTC.SVDHM);
-      VARRTC.SVDHM+=VARRTC.DELTATIME;
-      HMWRT(VARRTC.SVDHM);
-      RDHMRTC();
-      Serial.println(String("DONE LOGOUT & SAVE: ")+VARRTC.SVDHM);
+      if ((!(PIND & (1 << PIND3))) && (!(PIND & (1 << PIND7)))) {
+        HMWRT(VARRTC.SVDHM + VARRTC.DELTATIME);
+      } else {
+        HMWRT(VARRTC.SVDHM + VARRTC.ELAPSED + VARRTC.DELTATIME);
+      }
       VARRTC.ELAPSED    = 0;
       VARSER.VAL        = 0;
-
+      
       break;
   }
 }
