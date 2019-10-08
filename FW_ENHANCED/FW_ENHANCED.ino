@@ -61,7 +61,6 @@ void setup() {
   rtc.begin();
   Serial.begin(9600);
   RDHMRTC();
-
 }
 
 void loop() {
