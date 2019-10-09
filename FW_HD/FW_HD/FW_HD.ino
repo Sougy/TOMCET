@@ -63,10 +63,39 @@ static void doSomeWork(const gps_fix & fix)
 {
   if(fix.valid.location){
     if(fix.dateTime.seconds < 60)
-      VARGPS.Longi =  
+      VARGPS.Longi  = fix.longitudeL();
+      VARGPS.Lati   = fix.latitudeL();
+      VARGPS.Alti   = fix.altitude();
+    
+    if(fix.valid.satellites)
+      VARGPS.Sat    = fix.satellites;
+      VARGPS.Speed  = fix.speed_mph();
+  }
+  else{
+    VARGPS.Longi  = 0;
+    VARGPS.Lati   = 0;
+    VARGPS.Alti   = 0;
+    VARGPS.Sat    = 0;
+    VARGPS.Speed  = 0;
   }
 }
 
+static void GPSloop();
+static void GPSloop()
+{
+  while(gps.available(gpsPort))
+    doSomeWork(gps.read());
+}
+
+void PROG()
+{
+  GPSloop();
+  Serial.println(String("Longitude: ")+VARGPS.Longi);
+  Serial.println(String("Latitude: ")+VARGPS.Lati);
+  Serial.println(String("Altitude: ")+VARGPS.Alti);
+  Serial.println(String("Satelit: ")+VARGPS.Sat);
+  Serial.println(String("Speed mph: ")+VARGPS.Speed);
+}
 
 void setup() {
   // put your setup code here, to run once:
@@ -82,5 +111,5 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
-  
+  PROG();
 }
