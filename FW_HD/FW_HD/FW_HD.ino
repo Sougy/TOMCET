@@ -8,31 +8,31 @@
 
 #define CE_PIN 9
 #define CSN_PIN 10
-
 #define SNED_RATE 1000
+#define PORT Serial
 
 #if !defined( NMEAGPS_PARSE_RMC )
-  #error Uncomment NMEAGPS_PARSE_RMC in NMEAGPS_cfg.h!
+#error Uncomment NMEAGPS_PARSE_RMC in NMEAGPS_cfg.h!
 #endif
 
 #if !defined( GPS_FIX_TIME )
-  #error Uncomment GPS_FIX_TIME in GPSfix_cfg.h!
+#error Uncomment GPS_FIX_TIME in GPSfix_cfg.h!
 #endif
 
 #if !defined( GPS_FIX_LOCATION )
-  #error Uncomment GPS_FIX_LOCATION in GPSfix_cfg.h!
+#error Uncomment GPS_FIX_LOCATION in GPSfix_cfg.h!
 #endif
 
 #if !defined( GPS_FIX_SPEED )
-  #error Uncomment GPS_FIX_SPEED in GPSfix_cfg.h!
+#error Uncomment GPS_FIX_SPEED in GPSfix_cfg.h!
 #endif
 
 #if !defined( GPS_FIX_SATELLITES )
-  #error Uncomment GPS_FIX_SATELLITES in GPSfix_cfg.h!
+#error Uncomment GPS_FIX_SATELLITES in GPSfix_cfg.h!
 #endif
 
 #ifdef NMEAGPS_INTERRUPT_PROCESSING
-  #error You must NOT define NMEAGPS_INTERRUPT_PROCESSING in NMEAGPS_cfg.h!
+#error You must NOT define NMEAGPS_INTERRUPT_PROCESSING in NMEAGPS_cfg.h!
 #endif
 
 RF24 radio(CE_PIN, CSN_PIN);
@@ -40,12 +40,12 @@ const uint64_t address  = 0x7878787878LL;
 
 typedef struct
 {
-  int32_t Longi,Lati;
+  int32_t Longi, Lati;
   float Alti, Speed;
   int8_t Sat;
-}GPScom; GPScom VARGPS;
+} GPScom; GPScom VARGPS;
 
-int32_t longitude,latitude;
+int32_t longitude, latitude;
 
 struct package
 {
@@ -53,48 +53,85 @@ struct package
   char text2[12];
   char text3[5];
   unsigned int stat = 0;
-};typedef struct package Package;
+}; typedef struct package Package;
 Package data;
+
+static void printL( Print & outs, int32_t degE7 );
+static void printL( Print & outs, int32_t degE7 )
+{
+  // Extract and print negative sign
+  if (degE7 < 0) {
+    degE7 = -degE7;
+    outs.print( '-' );
+  }
+
+  // Whole degrees
+  int32_t deg = degE7 / 10000000L;
+  outs.print( deg );
+  outs.print( '.' );
+
+  // Get fractional degrees
+  degE7 -= deg * 10000000L;
+
+  // Print leading zeroes, if needed
+  int32_t factor = 1000000L;
+  while ((degE7 < factor) && (factor > 1L)) {
+    outs.print( '0' );
+    factor /= 10L;
+  }
+
+  // Print fractional degrees
+  outs.print( degE7 );
+}
 
 static NMEAGPS gps;
 
 static void doSomeWork(const gps_fix & fix);
 static void doSomeWork(const gps_fix & fix)
 {
-  if(fix.valid.location){
-    if(fix.dateTime.seconds < 60)
+  if (fix.valid.location) {
+    if (fix.dateTime.seconds < 60)
       VARGPS.Longi  = fix.longitudeL();
-      VARGPS.Lati   = fix.latitudeL();
-      VARGPS.Alti   = fix.altitude();
-    
-    if(fix.valid.satellites)
+    VARGPS.Lati   = fix.latitudeL();
+    VARGPS.Alti   = fix.altitude();
+    PORT.print("Longitude: ");
+    printL(PORT,VARGPS.Longi);
+    PORT.println();
+    PORT.print("Latitude: ");
+    printL(PORT,VARGPS.Lati);
+    PORT.println();
+    PORT.println(String("Altitude: ") + VARGPS.Alti);
+
+    if (fix.valid.satellites)
       VARGPS.Sat    = fix.satellites;
-      VARGPS.Speed  = fix.speed_mph();
+    VARGPS.Speed  = fix.speed_mph();
+    PORT.println(String("Satelit: ") + VARGPS.Sat);
+    PORT.println(String("Speed mph: ") + VARGPS.Speed);
   }
-  else{
+  else {
     VARGPS.Longi  = 0;
     VARGPS.Lati   = 0;
     VARGPS.Alti   = 0;
     VARGPS.Sat    = 0;
     VARGPS.Speed  = 0;
+    PORT.println(String("Longitude: ") + VARGPS.Longi);
+    PORT.println(String("Latitude: ") + VARGPS.Lati);
+    PORT.println(String("Altitude: ") + VARGPS.Alti);
+    PORT.println(String("Satelit: ") + VARGPS.Sat);
+    PORT.println(String("Speed mph: ") + VARGPS.Speed);
   }
 }
 
 static void GPSloop();
 static void GPSloop()
 {
-  while(gps.available(gpsPort))
+  while (gps.available(gpsPort))
     doSomeWork(gps.read());
 }
 
 void PROG()
 {
   GPSloop();
-  Serial.println(String("Longitude: ")+VARGPS.Longi);
-  Serial.println(String("Latitude: ")+VARGPS.Lati);
-  Serial.println(String("Altitude: ")+VARGPS.Alti);
-  Serial.println(String("Satelit: ")+VARGPS.Sat);
-  Serial.println(String("Speed mph: ")+VARGPS.Speed);
 }
 
 void setup() {
@@ -106,7 +143,8 @@ void setup() {
   radio.setDataRate(RF24_250KBPS);
   radio.startListening();
   gpsPort.begin(9600);
-  Serial.begin(9600);
+  PORT.begin(9600);
+  PORT.flush();
 }
 
 void loop() {
