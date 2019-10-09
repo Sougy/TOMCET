@@ -6,13 +6,17 @@
 #include <NMEAGPS.h>
 #include <GPSport.h>
 
+#define CE_PIN 9
+#define CSN_PIN 10
+
+#define SEND_RATE 1000
 
 #if !defined( NMEAGPS_PARSE_RMC )
   #error Uncomment NMEAGPS_PARSE_RMC in NMEAGPS_cfg.h!
 #endif
 
 #if !defined( GPS_FIX_TIME )
-  #error Uncomment GPS_FIX_TIME in GPSfix.cfg.h!
+  #error Uncomment GPS_FIX_TIME in GPSfix_cfg.h!
 #endif
 
 #if !defined( GPS_FIX_LOCATION )
@@ -31,7 +35,7 @@
   #error You must NOT define NMEAGPS_INTERRUPT_PROCESSING in NMEAGPS_cfg.h!
 #endif
 
-RF24 radio(9, 10); // CE, CSN Pins
+RF24 radio(CE_PIN, CSN_PIN); // CE, CSN Pins
 const uint64_t address = 0x7878787878LL;
 
 int32_t longitude = 1171403240; //1171403057
