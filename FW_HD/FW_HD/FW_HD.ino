@@ -133,14 +133,24 @@ static void GPSloop()
 
 void RFCOM()
 {
+  byte pipeNum = 0;
   if (radio.available()) {
-    while (radio.available()) {
+    while (radio.available(&pipeNum)) {
       radio.read(&data, sizeof(data));
     }
   }
+  String STRLONGI = String(data.text1);
+  longitude       = STRLONGI.toInt();
+  String STRLATI  = String(data.text2);
+  latitude        = STRLATI.toInt(); 
   PORT.println();
-  PORT.println(String("Longitude: ") + data.text1);
-  PORT.println(String("Latitude: ") + data.text2);
+  PORT.println(String("pipeNum: ")+pipeNum);
+  PORT.print("Longitude: ");
+  printL(PORT, longitude);
+  PORT.println();
+  PORT.print("Latitude: ");
+  printL(PORT, latitude);
+  PORT.println();
   PORT.println(String("No lambung: ") + data.text3);
   PORT.println(String("stat: ") + data.stat);
   PORT.println();
