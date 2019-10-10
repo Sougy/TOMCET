@@ -36,7 +36,7 @@
 #endif
 
 RF24 radio(CE_PIN, CSN_PIN);
-const uint64_t address  = 0x7878787878LL;
+const uint64_t address[]  = {0x7878787878LL, 0xB3B4B5B6F1LL};
 
 typedef struct
 {
@@ -150,7 +150,8 @@ void setup() {
   // put your setup code here, to run once:
   radio.begin();
   radio.setChannel(125);
-  radio.openReadingPipe(0, address);
+  radio.openReadingPipe(0, address[0]);
+  radio.openReadingPipe(1, address[1]);
   radio.setPALevel(RF24_PA_MIN);
   radio.setDataRate(RF24_250KBPS);
   radio.startListening();

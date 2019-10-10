@@ -36,7 +36,7 @@
 #endif
 
 RF24 radio(CE_PIN, CSN_PIN); // CE, CSN Pins
-const uint64_t address = 0x7878787878LL;
+const uint64_t address = 0xB3B4B5B6F1LL;
 
 int32_t longitude = 1171403240; //1171403057
 int32_t latitude = -4523180; //-12918241
