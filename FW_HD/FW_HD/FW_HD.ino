@@ -8,7 +8,7 @@
 
 #define CE_PIN 9
 #define CSN_PIN 10
-#define SNED_RATE 1000
+#define SEND_RATE 1000
 #define PORT Serial
 
 #if !defined( NMEAGPS_PARSE_RMC )
@@ -46,6 +46,7 @@ typedef struct
 } GPScom; GPScom VARGPS;
 
 int32_t longitude, latitude;
+unsigned long PREVRF = 0;
 
 struct package
 {
@@ -95,10 +96,10 @@ static void doSomeWork(const gps_fix & fix)
     VARGPS.Lati   = fix.latitudeL();
     VARGPS.Alti   = fix.altitude();
     PORT.print("Longitude: ");
-    printL(PORT,VARGPS.Longi);
+    printL(PORT, VARGPS.Longi);
     PORT.println();
     PORT.print("Latitude: ");
-    printL(PORT,VARGPS.Lati);
+    printL(PORT, VARGPS.Lati);
     PORT.println();
     PORT.println(String("Altitude: ") + VARGPS.Alti);
 
@@ -120,6 +121,7 @@ static void doSomeWork(const gps_fix & fix)
     PORT.println(String("Satelit: ") + VARGPS.Sat);
     PORT.println(String("Speed mph: ") + VARGPS.Speed);
   }
+  RFCOM();
 }
 
 static void GPSloop();
@@ -129,9 +131,19 @@ static void GPSloop()
     doSomeWork(gps.read());
 }
 
-void PROG()
+void RFCOM()
 {
-  GPSloop();
+  if (radio.available()) {
+    while (radio.available()) {
+      radio.read(&data, sizeof(data));
+    }
+  }
+  PORT.println();
+  PORT.println(String("Longitude: ") + data.text1);
+  PORT.println(String("Latitude: ") + data.text2);
+  PORT.println(String("No lambung: ") + data.text3);
+  PORT.println(String("stat: ") + data.stat);
+  PORT.println();
 }
 
 void setup() {
@@ -149,5 +161,5 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
-  PROG();
+  GPSloop();
 }

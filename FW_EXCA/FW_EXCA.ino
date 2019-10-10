@@ -48,7 +48,7 @@ struct package
 {
   char text1[12];
   char text2[12];
-  char text3[5] = "124";
+  char text3[5] = "123";
   unsigned int stat = 0;
 }; typedef struct package Package;
 Package data;
