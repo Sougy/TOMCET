@@ -170,7 +170,7 @@ void RFCOM()
       Serial.print("|");
       printL(PORT, VARGPS.Longi);
       Serial.print("|");
-      Serial.print(String(VARGPS.Alti) + "|" + VARGPS.Speed + "|" + VARGPS.Sat + "|" + 0 + "|" + 0 + "|" + "|" + 0 + "|");
+      Serial.println(String(VARGPS.Alti) + "|" + VARGPS.Speed + "|" + VARGPS.Sat + "|" + 0 + "|" + 0 + "|" + "|" + 0 + "|");
     }
   }
 }
