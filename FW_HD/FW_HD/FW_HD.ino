@@ -95,19 +95,19 @@ static void doSomeWork(const gps_fix & fix)
       VARGPS.Longi  = fix.longitudeL();
     VARGPS.Lati   = fix.latitudeL();
     VARGPS.Alti   = fix.altitude();
-    PORT.print("Longitude: ");
-    printL(PORT, VARGPS.Longi);
-    PORT.println();
-    PORT.print("Latitude: ");
-    printL(PORT, VARGPS.Lati);
-    PORT.println();
-    PORT.println(String("Altitude: ") + VARGPS.Alti);
+    /*PORT.print("Longitude: ");
+      printL(PORT, VARGPS.Longi);
+      PORT.println();
+      PORT.print("Latitude: ");
+      printL(PORT, VARGPS.Lati);
+      PORT.println();
+      PORT.println(String("Altitude: ") + VARGPS.Alti);*/
 
     if (fix.valid.satellites)
       VARGPS.Sat    = fix.satellites;
     VARGPS.Speed  = fix.speed_mph();
-    PORT.println(String("Satelit: ") + VARGPS.Sat);
-    PORT.println(String("Speed mph: ") + VARGPS.Speed);
+    /*PORT.println(String("Satelit: ") + VARGPS.Sat);
+      PORT.println(String("Speed mph: ") + VARGPS.Speed);*/
   }
   else {
     VARGPS.Longi  = 0;
@@ -115,13 +115,12 @@ static void doSomeWork(const gps_fix & fix)
     VARGPS.Alti   = 0;
     VARGPS.Sat    = 0;
     VARGPS.Speed  = 0;
-    PORT.println(String("Longitude: ") + VARGPS.Longi);
-    PORT.println(String("Latitude: ") + VARGPS.Lati);
-    PORT.println(String("Altitude: ") + VARGPS.Alti);
-    PORT.println(String("Satelit: ") + VARGPS.Sat);
-    PORT.println(String("Speed mph: ") + VARGPS.Speed);
+    /*PORT.println(String("Longitude: ") + VARGPS.Longi);
+      PORT.println(String("Latitude: ") + VARGPS.Lati);
+      PORT.println(String("Altitude: ") + VARGPS.Alti);
+      PORT.println(String("Satelit: ") + VARGPS.Sat);
+      PORT.println(String("Speed mph: ") + VARGPS.Speed);*/
   }
-  RFCOM();
 }
 
 static void GPSloop();
@@ -134,36 +133,56 @@ static void GPSloop()
 void RFCOM()
 {
   byte pipeNum = 0;
-  if (radio.available()) {
-    while (radio.available(&pipeNum)) {
-      radio.read(&data, sizeof(data));
+  if ((unsigned long)(millis() - PREVRF) > SEND_RATE) {
+    PREVRF = millis();
+    if (radio.available(&pipeNum)) {
+      while (radio.available(&pipeNum)) {
+        radio.read(&data, sizeof(data));
+        String STRLONGI = String(data.text1);
+        longitude       = STRLONGI.toInt();
+        String STRLATI  = String(data.text2);
+        latitude        = STRLATI.toInt();
+        printL(PORT, VARGPS.Lati);
+        Serial.print("|");
+        printL(PORT, VARGPS.Longi);
+        Serial.print("|");
+        Serial.print(String(VARGPS.Alti) + "|" + VARGPS.Speed + "|" + VARGPS.Sat + "|");
+        printL(PORT, latitude);
+        Serial.print("|");
+        printL(PORT, longitude);
+        Serial.print("|");
+        PORT.println(String(data.text3) + "|" + data.stat + "|");
+        /*PORT.println();
+          PORT.println(String("pipeNum: ") + pipeNum);
+          PORT.print("Longitude: ");
+          printL(PORT, longitude);
+          PORT.println();
+          PORT.print("Latitude: ");
+          printL(PORT, latitude);
+          PORT.println();
+          PORT.println(String("No lambung: ") + data.text3);
+          PORT.println(String("stat: ") + data.stat);
+          PORT.println();*/
+      }
+    }
+    else {
+      printL(PORT, VARGPS.Lati);
+      Serial.print("|");
+      printL(PORT, VARGPS.Longi);
+      Serial.print("|");
+      Serial.print(String(VARGPS.Alti) + "|" + VARGPS.Speed + "|" + VARGPS.Sat + "|" + 0 + "|" + 0 + "|" + "|" + 0 + "|");
     }
   }
-  String STRLONGI = String(data.text1);
-  longitude       = STRLONGI.toInt();
-  String STRLATI  = String(data.text2);
-  latitude        = STRLATI.toInt(); 
-  PORT.println();
-  PORT.println(String("pipeNum: ")+pipeNum);
-  PORT.print("Longitude: ");
-  printL(PORT, longitude);
-  PORT.println();
-  PORT.print("Latitude: ");
-  printL(PORT, latitude);
-  PORT.println();
-  PORT.println(String("No lambung: ") + data.text3);
-  PORT.println(String("stat: ") + data.stat);
-  PORT.println();
 }
 
 void setup() {
   // put your setup code here, to run once:
   radio.begin();
   radio.setChannel(125);
-  radio.openReadingPipe(0, address[0]);
-  radio.openReadingPipe(1, address[1]);
   radio.setPALevel(RF24_PA_MIN);
   radio.setDataRate(RF24_250KBPS);
+  radio.openReadingPipe(0, address[0]);
+  radio.openReadingPipe(1, address[1]);
   radio.startListening();
   gpsPort.begin(9600);
   PORT.begin(9600);
@@ -173,4 +192,5 @@ void setup() {
 void loop() {
   // put your main code here, to run repeatedly:
   GPSloop();
+  RFCOM();
 }
