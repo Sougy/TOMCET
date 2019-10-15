@@ -36,7 +36,7 @@
 #endif
 
 RF24 radio(CE_PIN, CSN_PIN); // CE, CSN Pins
-const uint64_t address = 0xB3B4B5B6F1LL;
+const uint64_t address = 0x7878787878LL;
 
 int32_t longitude = 1171403240; //1171403057
 int32_t latitude = -4523180; //-12918241
@@ -48,7 +48,7 @@ struct package
 {
   char text1[12];
   char text2[12];
-  char text3[5] = "123";
+  char text3[5] = "124";
   unsigned int stat = 0;
 }; typedef struct package Package;
 Package data;
