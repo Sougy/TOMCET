@@ -1,0 +1,20 @@
+VERSION 2
+
+- HARDWARE
+	- Making PCB for RF-HD controller, RF-EXCA controller, & Main Controller
+	- Soldering Component for each controllers.
+	- Wiring IN/OUT
+	- Boxing/Finishing
+
+- FIRMWARE
+	- RTC Set time and Date
+	- RTC EEPROM First setup
+	- Upload FW HM_ENHANCED
+	- Testing IN/OUT and all features
+	- Upload FW HD to RF HD & FW EXCA to RF EXCA
+	- Testing RF-Link, Exca RFs must be connected to RF HD
+	- The received data must be dummy GPS data at first and will be updated every sec,
+	  after GPS got connected to Satellites.
+	
+
+**DONE**  

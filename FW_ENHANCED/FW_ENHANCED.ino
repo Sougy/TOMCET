@@ -3,7 +3,7 @@
 
 #define HOURDIV 3600
 #define MINDIV 60
-#define X24C32 0x57
+#define X24C32 0x50
 #define PRTIME 1000
 
 DateTime now;
@@ -158,8 +158,8 @@ void PARSETHM()
 void LTCSEN()
 {
   HMS();
-  /*for debugging only
-    uint8_t PIN3ACC, PIN4DUMP, PIN7ALT, PIN5LOAD;
+  //for debugging only
+    /*uint8_t PIN3ACC, PIN4DUMP, PIN7ALT, PIN5LOAD;
     PIN3ACC   = digitalRead(3);
     PIN4DUMP  = digitalRead(4);
     PIN7ALT   = digitalRead(7);
@@ -167,8 +167,8 @@ void LTCSEN()
 
 
   if ((unsigned long)(millis() - PREVSEN) > PRTIME) {
-    /*for debugging only
-      Serial.println(String("DELTATIME: ") + VARRTC.DELTATIME);
+    //for debugging only
+      /*Serial.println(String("DELTATIME: ") + VARRTC.DELTATIME);
       Serial.println(String("ELAPSED: ") + VARRTC.ELAPSED);
       Serial.println(String("HMNOWSEC: ") + (VARRTC.SVDHM + VARRTC.DELTATIME));
       Serial.println(String("PIN3ACC: ") + PIN3ACC);
@@ -299,6 +299,7 @@ void RDHMRTC()
     ADDR++;
     VARRTC.SEQ++;
     MEMADDR = RDBYTE(X24C32, ADDR);
+    Serial.println("tes");
   }
   VARRTC.SEQ = 0;
   String STRHM(VARRTC.RCVDATA);
