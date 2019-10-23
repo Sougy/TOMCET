@@ -1,10 +1,14 @@
+//sisa eeprom setting vref
+
 #include <Wire.h>
 #include "RTClib.h"
 
+#define ANIN 0
 #define HOURDIV 3600
 #define MINDIV 60
-#define X24C32 0x50
+#define X24C32 0x57
 #define PRTIME 1000
+#define DS3231_I2C_ADDRESS 0x68
 
 DateTime now;
 RTC_DS3231 rtc;
@@ -13,6 +17,25 @@ RTC_DS3231 rtc;
 String ENGSTAT, TRIGSTAT;
 unsigned long PREVSEN = 0;
 unsigned long PREVSET = 0;
+
+typedef struct
+{
+  String RTCIN;
+  String RTCDATA[10];
+  bool RTCPARSE = false;
+  int RTCIDX = 0;
+  int CNTR;
+} RTCSET; RTCSET VARSET;
+
+typedef struct
+{
+  float VOUT    = 0.0;
+  float VIN     = 0.0;
+  float RREF1   = 10000.0;
+  float RREF2   = 1000.0;
+  int VALUE     = 0;
+  bool ALTSTATE = false;
+} ALT; ALT VARALT;
 
 typedef struct
 {
@@ -50,23 +73,84 @@ void setup() {
   // put your setup code here, to run once:
   DDRD &= ~(1 << PIND3); //ACC
   DDRD &= ~(1 << PIND4); //DUMP
-  DDRD &= ~(1 << PIND7); //ALT
+  pinMode(ANIN, INPUT); //ALT
+  //DDRD &= ~(1 << PIND7); //ALT
   DDRD &= ~(1 << PIND5); //LOAD
   DDRD  |= (1 << PIND6);
   PORTD |= (1 << PIND3);
   PORTD |= (1 << PIND4);
-  PORTD |= (1 << PIND7);
+  //PORTD |= (1 << PIND7);
   PORTD &= ~(1 << PIND5);
   Wire.begin();
   rtc.begin();
   Serial.begin(9600);
-  RDHMRTC();
+  //RDHMRTC(); //uncomment if you want all features work!
 }
 
 void loop() {
   // put your main code here, to run repeatedly:
   PROG();
 }
+
+void SETRTC() {
+  byte second, minute, hour, dayOfWeek, dayOfMonth, month, year;
+
+  while (Serial.available() > 0) {
+    char INCHAR = (char)Serial.read();
+    VARSET.RTCIN += INCHAR;
+    if (INCHAR == '\n') {
+      VARSET.RTCPARSE = true;
+    }
+  }
+  if (VARSET.RTCPARSE) {
+    Serial.print("data masuk: ");
+    Serial.print(VARSET.RTCIN);
+    Serial.print("\n");
+    
+    for (VARSET.CNTR = 1; VARSET.CNTR < VARSET.RTCIN.length(); VARSET.CNTR++) {
+      if (VARSET.RTCIN[VARSET.CNTR] == '<') {
+        VARSET.RTCDATA[VARSET.RTCIDX] = "";
+      }
+      else if ((VARSET.RTCIN[VARSET.CNTR] == '>') || (VARSET.RTCIN[VARSET.CNTR] == '|')) {
+        VARSET.RTCIDX++;
+        VARSET.RTCDATA[VARSET.RTCIDX] = "";
+      }
+      else {
+        VARSET.RTCDATA[VARSET.RTCIDX] = VARSET.RTCDATA[VARSET.RTCIDX] + VARSET.RTCIN[VARSET.CNTR];
+      }
+    }
+    second      = VARSET.RTCDATA[0].toInt();
+    minute      = VARSET.RTCDATA[1].toInt();
+    hour        = VARSET.RTCDATA[2].toInt();
+    dayOfWeek   = VARSET.RTCDATA[3].toInt();
+    dayOfMonth  = VARSET.RTCDATA[4].toInt();
+    month       = VARSET.RTCDATA[5].toInt();
+    year        = VARSET.RTCDATA[6].toInt();
+
+    Serial.println(String("Detik: ")+second+"Menit: "+minute+"jam: "+
+    hour+"Hari: "+dayOfWeek+"tanggal: "+dayOfMonth+"Bulan: "+month+"Tahun: "+year);
+    
+    Wire.beginTransmission(DS3231_I2C_ADDRESS);
+    Wire.write(0);
+    Wire.write(decToBcd(second));
+    Wire.write(decToBcd(minute));
+    Wire.write(decToBcd(hour));
+    Wire.write(decToBcd(dayOfWeek));
+    Wire.write(decToBcd(dayOfMonth));
+    Wire.write(decToBcd(month));
+    Wire.write(decToBcd(year));
+    Wire.endTransmission();
+    VARSET.RTCIDX = 0;
+    VARSET.RTCIN = "";
+    Serial.println("done");
+  }
+}
+
+byte decToBcd(byte val)
+{
+  return ( (val / 10 * 16) + (val % 10) );
+}
+
 
 void SERFLUSH(void)
 {
@@ -159,7 +243,7 @@ void LTCSEN()
 {
   HMS();
   //for debugging only
-    /*uint8_t PIN3ACC, PIN4DUMP, PIN7ALT, PIN5LOAD;
+  /*uint8_t PIN3ACC, PIN4DUMP, PIN7ALT, PIN5LOAD;
     PIN3ACC   = digitalRead(3);
     PIN4DUMP  = digitalRead(4);
     PIN7ALT   = digitalRead(7);
@@ -168,7 +252,7 @@ void LTCSEN()
 
   if ((unsigned long)(millis() - PREVSEN) > PRTIME) {
     //for debugging only
-      /*Serial.println(String("DELTATIME: ") + VARRTC.DELTATIME);
+    /*Serial.println(String("DELTATIME: ") + VARRTC.DELTATIME);
       Serial.println(String("ELAPSED: ") + VARRTC.ELAPSED);
       Serial.println(String("HMNOWSEC: ") + (VARRTC.SVDHM + VARRTC.DELTATIME));
       Serial.println(String("PIN3ACC: ") + PIN3ACC);
@@ -176,29 +260,29 @@ void LTCSEN()
       Serial.println(String("PIN7ALT: ") + PIN7ALT);
       Serial.println(String("PIN5LOAD: ") + PIN5LOAD);*/
 
-    if ((!(PIND & (1 << PIND3))) && (PIND & (1 << PIND7)) && (PIND & (1 << PIND4)) && (!(PIND & (1 << PIND5))))
+    if ((!(PIND & (1 << PIND3))) && (!VARALT.ALTSTATE) && (PIND & (1 << PIND4)) && (!(PIND & (1 << PIND5))))
     {
       ENGSTAT   = "IN";
       TRIGSTAT  = "";
       Serial.print(String(VARRTC.CURDATE) + "|" + VARRTC.CURTIME + "|" + VARRTC.HR + ":" +
                    VARRTC.MIN + ":" + VARRTC.SEC + "|" + ENGSTAT + "|" + TRIGSTAT + "|");
     }
-    else if ((!(PIND & (1 << PIND3))) && (!(PIND & (1 << PIND7))) && (PIND & (1 << PIND4)) && (!(PIND & (1 << PIND5))))
+    else if ((!(PIND & (1 << PIND3))) && (VARALT.ALTSTATE) && (PIND & (1 << PIND4)) && (!(PIND & (1 << PIND5))))
     {
-      PORTD ^= (1<<PIND6);
+      PORTD ^= (1 << PIND6);
       ENGSTAT = "RG";
       TRIGSTAT  = "";
       Serial.print(String(VARRTC.CURDATE) + "|" + VARRTC.CURTIME + "|" + VARRTC.HR + ":" +
                    VARRTC.MIN + ":" + VARRTC.SEC + "|" + ENGSTAT + "|" + TRIGSTAT + "|");
     }
-    else if ((!(PIND & (1 << PIND3))) && (!(PIND & (1 << PIND7))) && (!(PIND & (1 << PIND4))) && (!(PIND & (1 << PIND5))))
+    else if ((!(PIND & (1 << PIND3))) && (VARALT.ALTSTATE) && (!(PIND & (1 << PIND4))) && (!(PIND & (1 << PIND5))))
     {
       ENGSTAT = "RG";
       TRIGSTAT = "DG";
       Serial.print(String(VARRTC.CURDATE) + "|" + VARRTC.CURTIME + "|" + VARRTC.HR + ":" +
                    VARRTC.MIN + ":" + VARRTC.SEC + "|" + ENGSTAT + "|" + TRIGSTAT + "|");
     }
-    else if ((!(PIND & (1 << PIND3))) && (!(PIND & (1 << PIND7))) && (PIND & (1 << PIND4)) && (PIND & (1 << PIND5)))
+    else if ((!(PIND & (1 << PIND3))) && (VARALT.ALTSTATE) && (PIND & (1 << PIND4)) && (PIND & (1 << PIND5)))
     {
       ENGSTAT = "RG";
       TRIGSTAT = "LG";
@@ -261,11 +345,32 @@ void RDBUF(int DVCADDR, unsigned int EEADDR, byte *BUFFER, int LENGTH)
     if (Wire.available()) BUFFER[DATASEQ] = Wire.read();
 }
 
+void INALT()
+{
+  VARALT.VALUE = analogRead(ANIN);
+  VARALT.VOUT  = (VARALT.VALUE * 5.0) / 1024.0;
+  VARALT.VIN   = VARALT.VOUT / (VARALT.RREF2 / (VARALT.RREF1 + VARALT.RREF2));
+  if (VARALT.VIN < 0.09)
+  {
+    VARALT.VIN  = 0.0;
+  }
+
+  if (VARALT.VIN > 22.0)
+  {
+    VARALT.ALTSTATE = true;
+    PORTD ^= (1 << PIND6);
+  } else {
+    VARALT.ALTSTATE = false;
+    PORTD &= ~(1 << PIND6);
+  }
+}
+
 void HMS()
 {
+  INALT();
   now = rtc.now();
 
-  if ((!(PIND & (1 << PIND3))) && (!(PIND & (1 << PIND7)))) {
+  if ((!(PIND & (1 << PIND3))) && (VARALT.ALTSTATE)) {
     if (!VARRTC.LTCHM) {
       RDHMRTC();
       VARRTC.ELAPSED += VARRTC.DELTATIME;
@@ -299,7 +404,7 @@ void RDHMRTC()
     ADDR++;
     VARRTC.SEQ++;
     MEMADDR = RDBYTE(X24C32, ADDR);
-    Serial.println("tes");
+    //Serial.println("tes");
   }
   VARRTC.SEQ = 0;
   String STRHM(VARRTC.RCVDATA);
@@ -332,26 +437,41 @@ void PROG()
       while (!VARSER.INHM) {
         if ((unsigned long)(millis() - PREVSET) > PRTIME) {
           Serial.println('#');
-          PORTD ^= (1<<PIND6);
+          PORTD ^= (1 << PIND6);
           PARSETHM();
           PREVSET = millis();
         }
       }
       //Serial.println("DONE SET HM"); //for debugging only
-      PORTD &= ~(1<<PIND6);
+      PORTD &= ~(1 << PIND6);
       VARSER.INHM = false;
       VARSER.VAL = 0;
 
       break;
 
     case 2:
-      if ((!(PIND & (1 << PIND3))) && (!(PIND & (1 << PIND7)))) {
+      if ((!(PIND & (1 << PIND3))) && (VARALT.ALTSTATE)) {
         HMWRT(VARRTC.SVDHM + VARRTC.DELTATIME);
       } else {
         HMWRT(VARRTC.SVDHM + VARRTC.ELAPSED + VARRTC.DELTATIME);
       }
       VARRTC.ELAPSED    = 0;
       VARSER.VAL        = 0;
+
+      break;
+
+    case 1:
+      SERFLUSH();
+      while (!VARSET.RTCPARSE)
+        if ((unsigned long)(millis() - PREVSET) > PRTIME) {
+          Serial.println('&');
+          PORTD ^= (1 << PIND6);
+          SETRTC();
+          PREVSET = millis();
+        }
+      PORTD &= ~(1 << PIND6);
+      VARSET.RTCPARSE = false;
+      VARSER.VAL = 0;
 
       break;
   }

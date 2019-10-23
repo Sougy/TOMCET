@@ -8,7 +8,7 @@ void setup()
     Serial.println("Writing into memory...");
   
   // write to EEPROM
-    i2c_eeprom_write_page(0x50, 0, (byte *)somedata, sizeof(somedata));
+    i2c_eeprom_write_page(0x57, 0, (byte *)somedata, sizeof(somedata));
 
     delay(100); //add a small delay
     Serial.println("Memory written");
