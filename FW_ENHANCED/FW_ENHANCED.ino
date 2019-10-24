@@ -1,12 +1,11 @@
-//sisa eeprom setting vref
-
 #include <Wire.h>
+#include <EEPROM.h>
 #include "RTClib.h"
 
 #define ANIN 0
 #define HOURDIV 3600
 #define MINDIV 60
-#define X24C32 0x57
+#define X24C32 0x50
 #define PRTIME 1000
 #define DS3231_I2C_ADDRESS 0x68
 
@@ -33,6 +32,7 @@ typedef struct
   float VIN     = 0.0;
   float RREF1   = 10000.0;
   float RREF2   = 1000.0;
+  uint8_t VREF  = 22;
   int VALUE     = 0;
   bool ALTSTATE = false;
 } ALT; ALT VARALT;
@@ -84,7 +84,8 @@ void setup() {
   Wire.begin();
   rtc.begin();
   Serial.begin(9600);
-  //RDHMRTC(); //uncomment if you want all features work!
+  VARALT.VREF = EEPROM.read(0);
+  RDHMRTC(); //uncomment if you want all features work!
 }
 
 void loop() {
@@ -103,10 +104,10 @@ void SETRTC() {
     }
   }
   if (VARSET.RTCPARSE) {
-    Serial.print("data masuk: ");
-    Serial.print(VARSET.RTCIN);
-    Serial.print("\n");
-    
+    //Serial.print("data masuk: ");
+    //Serial.print(VARSET.RTCIN);
+    //Serial.print("\n");
+
     for (VARSET.CNTR = 1; VARSET.CNTR < VARSET.RTCIN.length(); VARSET.CNTR++) {
       if (VARSET.RTCIN[VARSET.CNTR] == '<') {
         VARSET.RTCDATA[VARSET.RTCIDX] = "";
@@ -126,10 +127,12 @@ void SETRTC() {
     dayOfMonth  = VARSET.RTCDATA[4].toInt();
     month       = VARSET.RTCDATA[5].toInt();
     year        = VARSET.RTCDATA[6].toInt();
+    VARALT.VREF = VARSET.RTCDATA[7].toInt();
+    EEPROM.write(0, VARALT.VREF);
 
-    Serial.println(String("Detik: ")+second+"Menit: "+minute+"jam: "+
-    hour+"Hari: "+dayOfWeek+"tanggal: "+dayOfMonth+"Bulan: "+month+"Tahun: "+year);
-    
+    //Serial.println(String("Detik: ") + second + "Menit: " + minute + "jam: " +
+                   //hour + "Hari: " + dayOfWeek + "tanggal: " + dayOfMonth + "Bulan: " + month + "Tahun: " + year + "VREF: " + VARALT.VREF);
+
     Wire.beginTransmission(DS3231_I2C_ADDRESS);
     Wire.write(0);
     Wire.write(decToBcd(second));
@@ -142,7 +145,7 @@ void SETRTC() {
     Wire.endTransmission();
     VARSET.RTCIDX = 0;
     VARSET.RTCIN = "";
-    Serial.println("done");
+    //Serial.println("done");
   }
 }
 
@@ -265,7 +268,7 @@ void LTCSEN()
       ENGSTAT   = "IN";
       TRIGSTAT  = "";
       Serial.print(String(VARRTC.CURDATE) + "|" + VARRTC.CURTIME + "|" + VARRTC.HR + ":" +
-                   VARRTC.MIN + ":" + VARRTC.SEC + "|" + ENGSTAT + "|" + TRIGSTAT + "|");
+                   VARRTC.MIN + ":" + VARRTC.SEC + "|" + ENGSTAT + "|" + TRIGSTAT + "|" + VARALT.VIN + "|");
     }
     else if ((!(PIND & (1 << PIND3))) && (VARALT.ALTSTATE) && (PIND & (1 << PIND4)) && (!(PIND & (1 << PIND5))))
     {
@@ -273,27 +276,27 @@ void LTCSEN()
       ENGSTAT = "RG";
       TRIGSTAT  = "";
       Serial.print(String(VARRTC.CURDATE) + "|" + VARRTC.CURTIME + "|" + VARRTC.HR + ":" +
-                   VARRTC.MIN + ":" + VARRTC.SEC + "|" + ENGSTAT + "|" + TRIGSTAT + "|");
+                   VARRTC.MIN + ":" + VARRTC.SEC + "|" + ENGSTAT + "|" + TRIGSTAT + "|" + VARALT.VIN + "|");
     }
     else if ((!(PIND & (1 << PIND3))) && (VARALT.ALTSTATE) && (!(PIND & (1 << PIND4))) && (!(PIND & (1 << PIND5))))
     {
       ENGSTAT = "RG";
       TRIGSTAT = "DG";
       Serial.print(String(VARRTC.CURDATE) + "|" + VARRTC.CURTIME + "|" + VARRTC.HR + ":" +
-                   VARRTC.MIN + ":" + VARRTC.SEC + "|" + ENGSTAT + "|" + TRIGSTAT + "|");
+                   VARRTC.MIN + ":" + VARRTC.SEC + "|" + ENGSTAT + "|" + TRIGSTAT + "|" + VARALT.VIN + "|");
     }
     else if ((!(PIND & (1 << PIND3))) && (VARALT.ALTSTATE) && (PIND & (1 << PIND4)) && (PIND & (1 << PIND5)))
     {
       ENGSTAT = "RG";
       TRIGSTAT = "LG";
       Serial.print(String(VARRTC.CURDATE) + "|" + VARRTC.CURTIME + "|" + VARRTC.HR + ":" +
-                   VARRTC.MIN + ":" + VARRTC.SEC + "|" + ENGSTAT + "|" + TRIGSTAT + "|");
+                   VARRTC.MIN + ":" + VARRTC.SEC + "|" + ENGSTAT + "|" + TRIGSTAT + "|" + VARALT.VIN + "|");
     }
     else {
       ENGSTAT = "IF";
       TRIGSTAT = "";
       Serial.print(String(VARRTC.CURDATE) + "|" + VARRTC.CURTIME + "|" + VARRTC.HR + ":" +
-                   VARRTC.MIN + ":" + VARRTC.SEC + "|" + ENGSTAT + "|" + TRIGSTAT + "|");
+                   VARRTC.MIN + ":" + VARRTC.SEC + "|" + ENGSTAT + "|" + TRIGSTAT + "|" + VARALT.VIN + "|");
     }
     PREVSEN = millis();
     Serial.println();
@@ -355,7 +358,7 @@ void INALT()
     VARALT.VIN  = 0.0;
   }
 
-  if (VARALT.VIN > 22.0)
+  if (VARALT.VIN > VARALT.VREF)
   {
     VARALT.ALTSTATE = true;
     PORTD ^= (1 << PIND6);
