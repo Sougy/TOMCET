@@ -334,7 +334,7 @@ void HMS()
 {
   now = rtc.now();
 
-  if ((!(PIND & (1 << PIND3))) && (!(PIND & (1 << PIND7)))) {
+  if ((PIND & (1 << PIND3)) && (PIND & (1 << PIND7))) {
     if (!VARRTC.LTCHM) {
       RDHMRTC();
       VARRTC.ELAPSED += VARRTC.DELTATIME;
@@ -414,7 +414,7 @@ void PROG()
       break;
 
     case 2:
-      if ((!(PIND & (1 << PIND3))) && (!(PIND & (1 << PIND7)))) {
+      if ((PIND & (1 << PIND3)) && (PIND & (1 << PIND7))) {
         HMWRT(VARRTC.SVDHM + VARRTC.DELTATIME);
       } else {
         HMWRT(VARRTC.SVDHM + VARRTC.ELAPSED + VARRTC.DELTATIME);
