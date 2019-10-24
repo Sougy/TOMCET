@@ -99,7 +99,7 @@ void SETRTC() {
   while (Serial.available() > 0) {
     char INCHAR = (char)Serial.read();
     VARSET.RTCIN += INCHAR;
-    if (INCHAR == '\n') {
+    if (INCHAR == ']') {
       VARSET.RTCPARSE = true;
     }
   }
@@ -109,10 +109,10 @@ void SETRTC() {
     //Serial.print("\n");
 
     for (VARSET.CNTR = 1; VARSET.CNTR < VARSET.RTCIN.length(); VARSET.CNTR++) {
-      if (VARSET.RTCIN[VARSET.CNTR] == '<') {
+      if (VARSET.RTCIN[VARSET.CNTR] == '[') {
         VARSET.RTCDATA[VARSET.RTCIDX] = "";
       }
-      else if ((VARSET.RTCIN[VARSET.CNTR] == '>') || (VARSET.RTCIN[VARSET.CNTR] == '|')) {
+      else if ((VARSET.RTCIN[VARSET.CNTR] == ']') || (VARSET.RTCIN[VARSET.CNTR] == '|')) {
         VARSET.RTCIDX++;
         VARSET.RTCDATA[VARSET.RTCIDX] = "";
       }
@@ -214,16 +214,16 @@ void PARSETHM()
   while (Serial.available() > 0) {
     char INCHAR = (char)Serial.read();
     VARSER.DATAIN += INCHAR;
-    if (INCHAR == '\n') {
+    if (INCHAR == ']') {
       VARSER.INHM  = true;
     }
   }
   if (VARSER.INHM) {
     for (VARSER.I = 1; VARSER.I < VARSER.DATAIN.length(); VARSER.I++) {
-      if (VARSER.DATAIN[VARSER.I] == '<') {
+      if (VARSER.DATAIN[VARSER.I] == '[') {
         VARSER.SETDATA[VARSER.SEQ] = "";
       }
-      else if (VARSER.DATAIN[VARSER.I] == '>') {
+      else if (VARSER.DATAIN[VARSER.I] == ']') {
         VARSER.SEQ++;
         VARSER.SETDATA[VARSER.SEQ] = "";
       }
