@@ -5,7 +5,7 @@
 #define ANIN 0
 #define HOURDIV 3600
 #define MINDIV 60
-#define X24C32 0x50
+#define X24C32 0x57
 #define PRTIME 1000
 #define DS3231_I2C_ADDRESS 0x68
 
@@ -85,6 +85,7 @@ void setup() {
   rtc.begin();
   Serial.begin(9600);
   VARALT.VREF = EEPROM.read(0);
+  Serial.println("TES");
   RDHMRTC(); //uncomment if you want all features work!
 }
 

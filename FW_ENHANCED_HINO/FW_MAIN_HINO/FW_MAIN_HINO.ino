@@ -3,7 +3,7 @@
 
 #define HOURDIV 3600
 #define MINDIV 60
-#define X24C32 0x50
+#define X24C32 0x57
 #define PRTIME 1000
 #define DS3231_I2C_ADDRESS 0x68
 
@@ -14,6 +14,15 @@ RTC_DS3231 rtc;
 String ENGSTAT, TRIGSTAT;
 unsigned long PREVSEN = 0;
 unsigned long PREVSET = 0;
+
+uint8_t tesCOUNT = 0;
+
+typedef struct
+{
+  uint8_t WAITSH  = 0;
+  uint8_t WAITACC = 0;
+  uint8_t WAITRPY = 0;
+} LATTESH; LATTESH VARSH;
 
 typedef struct
 {
@@ -58,6 +67,7 @@ typedef struct
 
 void setup() {
   // put your setup code here, to run once:
+  DDRB |= (1 << PINB0); //relay
   DDRD &= ~(1 << PIND3); //ACC
   DDRD &= ~(1 << PIND4); //DUMP
   DDRD &= ~(1 << PIND7); //ALT
@@ -86,7 +96,7 @@ void SETRTC() {
     VARSET.RTCIN += INCHAR;
     if (INCHAR == ']') {
       VARSET.RTCPARSE = true;
-    } 
+    }
   }
   if (VARSET.RTCPARSE) {
     //Serial.print("data masuk: ");
@@ -114,7 +124,7 @@ void SETRTC() {
     year        = VARSET.RTCDATA[6].toInt();
 
     //Serial.println(String("Detik: ") + second + " Menit: " + minute + " jam: " +
-                   //hour + " Hari: " + dayOfWeek + " tanggal: " + dayOfMonth + " Bulan: " + month + " Tahun: " + year);
+    //hour + " Hari: " + dayOfWeek + " tanggal: " + dayOfMonth + " Bulan: " + month + " Tahun: " + year);
 
     Wire.beginTransmission(DS3231_I2C_ADDRESS);
     Wire.write(0);
@@ -228,22 +238,26 @@ void LTCSEN()
 {
   HMS();
   //for debugging only
-  /*uint8_t PIN3ACC, PIN4DUMP, PIN7ALT, PIN5LOAD;
-    PIN3ACC   = digitalRead(3);
-    PIN4DUMP  = digitalRead(4);
-    PIN7ALT   = digitalRead(7);
-    PIN5LOAD  = digitalRead(5);*/
+  uint8_t PIN3ACC, PIN4DUMP, PIN7ALT, PIN5LOAD, PIN8SH;
+  PIN3ACC   = digitalRead(3);
+  PIN4DUMP  = digitalRead(4);
+  PIN7ALT   = digitalRead(7);
+  PIN5LOAD  = digitalRead(5);
 
 
   if ((unsigned long)(millis() - PREVSEN) > PRTIME) {
     //for debugging only
-    /*Serial.println(String("DELTATIME: ") + VARRTC.DELTATIME);
-      Serial.println(String("ELAPSED: ") + VARRTC.ELAPSED);
-      Serial.println(String("HMNOWSEC: ") + (VARRTC.SVDHM + VARRTC.DELTATIME));
-      Serial.println(String("PIN3ACC: ") + PIN3ACC);
-      Serial.println(String("PIN4DUMP: ") + PIN4DUMP);
-      Serial.println(String("PIN7ALT: ") + PIN7ALT);
-      Serial.println(String("PIN5LOAD: ") + PIN5LOAD);*/
+    Serial.println(String("DELTATIME: ") + VARRTC.DELTATIME);
+    Serial.println(String("ELAPSED: ") + VARRTC.ELAPSED);
+    Serial.println(String("HMNOWSEC: ") + (VARRTC.SVDHM + VARRTC.DELTATIME));
+    Serial.println(String("PIN3ACC: ") + PIN3ACC);
+    Serial.println(String("PIN4DUMP: ") + PIN4DUMP);
+    Serial.println(String("PIN7ALT: ") + PIN7ALT);
+    Serial.println(String("PIN5LOAD: ") + PIN5LOAD);
+    Serial.println(String("IF COUNTED: ") + tesCOUNT);
+    Serial.println(String("WAIT ACC: ") + VARSH.WAITACC);
+    Serial.println(String("WAIT SH: ") + VARSH.WAITSH);
+    Serial.println(String("WAIT REPLY: ") + VARSH.WAITRPY);
 
     if ((PIND & (1 << PIND3)) && (!(PIND & (1 << PIND7))) && (!(PIND & (1 << PIND4))) && (!(PIND & (1 << PIND5))))
     {
@@ -275,6 +289,7 @@ void LTCSEN()
                    VARRTC.MIN + ":" + VARRTC.SEC + "|" + ENGSTAT + "|" + TRIGSTAT + "|");
     }
     else {
+      tesCOUNT++;
       ENGSTAT = "IF";
       TRIGSTAT = "";
       Serial.print(String(VARRTC.CURDATE) + "|" + VARRTC.CURTIME + "|" + VARRTC.HR + ":" +
@@ -388,12 +403,57 @@ void HMWRT(unsigned long DATA2CONV)
   //Serial.println("DONE SAVE"); //for debugging only
 }
 
+void SHPC()
+{
+  if ((PIND & (1 << PIND3)) || (VARSH.WAITACC == 6)) {
+    if (VARSH.WAITACC <= 5) {
+      if ((unsigned long)(millis() - PREVSET) > PRTIME) {
+        VARSH.WAITACC++;
+        PREVSET = millis();
+      }
+    }
+    else {
+      if (VARSH.WAITSH <= 5) {
+        PORTB |= (1 << PINB0);
+        if ((unsigned long)(millis() - PREVSET) > PRTIME) {
+          VARSH.WAITSH++;
+          PREVSET = millis();
+        }
+      }
+      else {
+        PORTB &= ~(1 << PINB0);
+        //rcv condition code(2) from latte
+        if (VARSH.WAITRPY <= 120) {
+          if ((unsigned long)(millis() - PREVSET) > PRTIME) {
+            VARSH.WAITRPY++;
+            PREVSET = millis();
+          }
+        }
+        else {
+          VARSH.WAITACC = 0;
+          VARSH.WAITSH  = 0;
+          VARSH.WAITRPY = 0;
+        }
+      }
+    }
+  }
+  else {
+    if (VARSH.WAITACC != 6) {
+      VARSH.WAITACC = 0;
+    }
+  }
+}
+
 void PROG()
 {
   LTCSEN();
   LTCSER();
 
   switch (VARSER.VAL) {
+    case 4:
+      SHPC();
+      break;
+
     case 3:
       SERFLUSH();
       VARRTC.DELTATIME  = 0;
@@ -419,8 +479,12 @@ void PROG()
       } else {
         HMWRT(VARRTC.SVDHM + VARRTC.ELAPSED + VARRTC.DELTATIME);
       }
-      VARRTC.ELAPSED    = 0;
-      VARSER.VAL        = 0;
+
+      VARRTC.ELAPSED  = 0;
+      VARSER.VAL      = 0;
+      VARSH.WAITACC   = 0;
+      VARSH.WAITSH    = 0;
+      VARSH.WAITRPY   = 0;
 
       break;
 

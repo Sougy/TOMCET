@@ -5,35 +5,40 @@
 #include <RF24.h>
 #include <NMEAGPS.h>
 #include <GPSport.h>
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
 
+#define HOURDIV 3600
+#define MINDIV 60
 #define CE_PIN 9
 #define CSN_PIN 10
-
 #define SEND_RATE 1000
 
 #if !defined( NMEAGPS_PARSE_RMC )
-  #error Uncomment NMEAGPS_PARSE_RMC in NMEAGPS_cfg.h!
+#error Uncomment NMEAGPS_PARSE_RMC in NMEAGPS_cfg.h!
 #endif
 
 #if !defined( GPS_FIX_TIME )
-  #error Uncomment GPS_FIX_TIME in GPSfix_cfg.h!
+#error Uncomment GPS_FIX_TIME in GPSfix_cfg.h!
 #endif
 
 #if !defined( GPS_FIX_LOCATION )
-  #error Uncomment GPS_FIX_LOCATION in GPSfix_cfg.h!
+#error Uncomment GPS_FIX_LOCATION in GPSfix_cfg.h!
 #endif
 
 #if !defined( GPS_FIX_SPEED )
-  #error Uncomment GPS_FIX_SPEED in GPSfix_cfg.h!
+#error Uncomment GPS_FIX_SPEED in GPSfix_cfg.h!
 #endif
 
 #if !defined( GPS_FIX_SATELLITES )
-  #error Uncomment GPS_FIX_SATELLITES in GPSfix_cfg.h!
+#error Uncomment GPS_FIX_SATELLITES in GPSfix_cfg.h!
 #endif
 
 #ifdef NMEAGPS_INTERRUPT_PROCESSING
-  #error You must NOT define NMEAGPS_INTERRUPT_PROCESSING in NMEAGPS_cfg.h!
+#error You must NOT define NMEAGPS_INTERRUPT_PROCESSING in NMEAGPS_cfg.h!
 #endif
+
+LiquidCrystal_I2C lcd(0x27, 16, 2);
 
 RF24 radio(CE_PIN, CSN_PIN); // CE, CSN Pins
 const uint64_t address = 0x7878787878LL;
@@ -43,6 +48,14 @@ int32_t latitude = -4523180; //-12918241
 String myString1;
 String myString2;
 int i;
+
+typedef struct
+{
+  unsigned long UPTIME = 0;
+  uint8_t SEC;
+  uint8_t MIN;
+  uint32_t HR;
+} UPCHECK; UPCHECK VARUP;
 
 struct package
 {
@@ -87,12 +100,14 @@ static void doSomeWork(const gps_fix & fix)
       myString2 = String(latitude);
       myString2.toCharArray(data.text2, sizeof(data.text2));
       radio.write(&data, sizeof(data));
-      delay(1000);
+      VARUP.UPTIME++;
+      delay(SEND_RATE);
     }
     PORTB &= ~(1 << PINB0);
     data.stat = 0;
     i = 0;
   }
+  VARUP.UPTIME++;
 }
 
 static void GPSloop();
@@ -100,6 +115,18 @@ static void GPSloop()
 {
   while (gps.available(gpsPort))
     doSomeWork(gps.read());
+}
+
+void UPTIME()
+{
+  VARUP.SEC = VARUP.UPTIME % MINDIV;
+  VARUP.MIN = (VARUP.UPTIME % HOURDIV) / MINDIV;
+  VARUP.HR  = VARUP.UPTIME / HOURDIV;
+
+  lcd.setCursor(0,0);
+  lcd.print("UPTIME");
+  lcd.setCursor(0,1);
+  lcd.print(String(VARUP.HR)+':'+VARUP.MIN+':'+VARUP.SEC);
 }
 
 void setup()
@@ -116,7 +143,10 @@ void setup()
   DDRD &= ~(1 << PIND4);
   PORTD |= (1 << PIND4);
   pinMode(8, OUTPUT);
+  Wire.begin();
+  lcd.begin();
 }
+
 void loop()
 {
   GPSloop();
