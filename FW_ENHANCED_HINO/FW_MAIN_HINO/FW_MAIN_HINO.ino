@@ -22,6 +22,7 @@ typedef struct
   uint8_t WAITSH  = 0;
   uint8_t WAITACC = 0;
   uint8_t WAITRPY = 0;
+  uint8_t SHCODE  = 0;
 } LATTESH; LATTESH VARSH;
 
 typedef struct
@@ -258,6 +259,7 @@ void LTCSEN()
     Serial.println(String("WAIT ACC: ") + VARSH.WAITACC);
     Serial.println(String("WAIT SH: ") + VARSH.WAITSH);
     Serial.println(String("WAIT REPLY: ") + VARSH.WAITRPY);
+    Serial.println(String("SH CODE: ") + VARSH.SHCODE);
 
     if ((PIND & (1 << PIND3)) && (!(PIND & (1 << PIND7))) && (!(PIND & (1 << PIND4))) && (!(PIND & (1 << PIND5))))
     {
@@ -405,7 +407,7 @@ void HMWRT(unsigned long DATA2CONV)
 
 void SHPC()
 {
-  if ((PIND & (1 << PIND3)) || (VARSH.WAITACC == 6)) {
+  if ((PIND & (1 << PIND3)) || (VARSH.WAITACC == 6) || (VARSH.WAITRPY == 121)) {
     if (VARSH.WAITACC <= 5) {
       if ((unsigned long)(millis() - PREVSET) > PRTIME) {
         VARSH.WAITACC++;
@@ -414,6 +416,7 @@ void SHPC()
     }
     else {
       if (VARSH.WAITSH <= 5) {
+        VARSH.WAITRPY = 0;
         PORTB |= (1 << PINB0);
         if ((unsigned long)(millis() - PREVSET) > PRTIME) {
           VARSH.WAITSH++;
@@ -432,15 +435,12 @@ void SHPC()
         else {
           VARSH.WAITACC = 0;
           VARSH.WAITSH  = 0;
-          VARSH.WAITRPY = 0;
         }
       }
     }
   }
   else {
-    if (VARSH.WAITACC != 6) {
-      VARSH.WAITACC = 0;
-    }
+     VARSH.WAITACC = 0;
   }
 }
 
@@ -451,7 +451,16 @@ void PROG()
 
   switch (VARSER.VAL) {
     case 4:
-      SHPC();
+      if (VARSH.SHCODE <= 5) {
+        if ((unsigned long)(millis() - PREVSET) > PRTIME) {
+          VARSH.SHCODE++;
+          Serial.println('$');
+          PREVSET = millis();
+        }
+      }
+      else {
+        SHPC();
+      }
       break;
 
     case 3:
@@ -485,6 +494,7 @@ void PROG()
       VARSH.WAITACC   = 0;
       VARSH.WAITSH    = 0;
       VARSH.WAITRPY   = 0;
+      VARSH.SHCODE    = 0;
 
       break;
 
