@@ -449,7 +449,7 @@ void SHPC()
 
 void LTCWARN()
 {
-  if ((PIND & (1 << PIND7)) && (VARSER.VAL != 5)) {
+  if ((PIND & (1 << PIND3)) && (PIND & (1 << PIND7)) && (VARSER.VAL != 5)) {
     if ((unsigned long)(millis() - PREVSET) > PRTIME) {
       if (VARSH.WARNED >= 2) {
         PORTB ^= (1 << PINB1);
