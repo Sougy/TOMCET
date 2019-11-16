@@ -447,7 +447,7 @@ void SHPC()
   }
 }
 
-void BUZZWARN()
+void LTCWARN()
 {
   if ((PIND & (1 << PIND7)) && (VARSER.VAL != 5)) {
     if ((unsigned long)(millis() - PREVSET) > PRTIME) {
@@ -464,11 +464,13 @@ void PROG()
 {
   LTCSEN();
   LTCSER();
+  LTCWARN();
 
   switch (VARSER.VAL) {
     case 5:
       VARSER.VAL    = 0;
       VARSH.WARNED  = 0;
+      PORTB &= ~(1 << PINB1);
       break;
 
     case 4:
