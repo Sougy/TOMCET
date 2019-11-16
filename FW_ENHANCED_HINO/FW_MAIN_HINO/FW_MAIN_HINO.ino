@@ -1,6 +1,7 @@
 #include <Wire.h>
 #include "RTClib.h"
 
+#define WTIME 120
 #define HOURDIV 3600
 #define MINDIV 60
 #define X24C32 0x57
@@ -23,6 +24,7 @@ typedef struct
   uint8_t WAITACC = 0;
   uint8_t WAITRPY = 0;
   uint8_t SHCODE  = 0;
+  uint8_t WARNED  = 0;
 } LATTESH; LATTESH VARSH;
 
 typedef struct
@@ -68,7 +70,8 @@ typedef struct
 
 void setup() {
   // put your setup code here, to run once:
-  DDRB |= (1 << PINB0); //relay
+  DDRB |= (1 << PINB0); //RELAY
+  DDRB |= (1 << PINB1); //BUZZER
   DDRD &= ~(1 << PIND3); //ACC
   DDRD &= ~(1 << PIND4); //DUMP
   DDRD &= ~(1 << PIND7); //ALT
@@ -426,7 +429,7 @@ void SHPC()
       else {
         PORTB &= ~(1 << PINB0);
         //rcv condition code(2) from latte
-        if (VARSH.WAITRPY <= 120) {
+        if (VARSH.WAITRPY <= WTIME) {
           if ((unsigned long)(millis() - PREVSET) > PRTIME) {
             VARSH.WAITRPY++;
             PREVSET = millis();
@@ -440,7 +443,20 @@ void SHPC()
     }
   }
   else {
-     VARSH.WAITACC = 0;
+    VARSH.WAITACC = 0;
+  }
+}
+
+void BUZZWARN()
+{
+  if ((PIND & (1 << PIND7)) && (VARSER.VAL != 5)) {
+    if ((unsigned long)(millis() - PREVSET) > PRTIME) {
+      if (VARSH.WARNED >= 2) {
+        PORTB ^= (1 << PINB1);
+      }
+      VARSH.WARNED++;
+      PREVSET = millis();
+    }
   }
 }
 
@@ -450,6 +466,11 @@ void PROG()
   LTCSER();
 
   switch (VARSER.VAL) {
+    case 5:
+      VARSER.VAL    = 0;
+      VARSH.WARNED  = 0;
+      break;
+
     case 4:
       if (VARSH.SHCODE <= 5) {
         if ((unsigned long)(millis() - PREVSET) > PRTIME) {
