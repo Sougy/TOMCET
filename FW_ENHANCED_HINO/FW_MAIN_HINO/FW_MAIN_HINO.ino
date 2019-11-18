@@ -1,17 +1,17 @@
 #include <Wire.h>
 #include "RTClib.h"
 
-#define BOOTIME 180
-#define HOURDIV 3600
-#define MINDIV 60
-#define X24C32 0x57
-#define PRTIME 1000
-#define DS3231_I2C_ADDRESS 0x68
+#define BOOTIME 180                // BOOTING TIME LATTE
+#define HOURDIV 3600               // HOUR DIV
+#define MINDIV 60                  // MINUTE DIV
+#define X24C32 0x57                // RTC EEPROM ADDR
+#define PRTIME 1000                // INTERVAL DELAY
+#define DS3231_I2C_ADDRESS 0x68    // RTC ADDR
 
 DateTime now;
 RTC_DS3231 rtc;
 
-//Engine status & Sensor status
+//ENGINE STATUS & SENSOR STATUS
 String ENGSTAT, TRIGSTAT;
 unsigned long PREVSEN = 0;
 unsigned long PREVSET = 0;
@@ -77,7 +77,7 @@ void setup() {
   DDRD &= ~(1 << PIND4); //DUMP
   DDRD &= ~(1 << PIND7); //ALT
   DDRD &= ~(1 << PIND5); //LOAD
-  DDRD  |= (1 << PIND6);
+  DDRD  |= (1 << PIND6); //LED INDICATOR
   PORTD &= ~(1 << PIND3);
   PORTD &= ~(1 << PIND4);
   PORTD &= ~(1 << PIND7);
@@ -85,7 +85,7 @@ void setup() {
   Wire.begin();
   rtc.begin();
   Serial.begin(9600);
-  RDHMRTC();
+  RDHMRTC(); //RETURNING HM VALUE
 }
 
 void loop() {
@@ -93,6 +93,12 @@ void loop() {
   PROG();
 }
 
+
+/*
+=======================================================================
+=========================   SETTING RTC TIME  =========================
+=======================================================================
+*/
 void SETRTC() {
   byte second, minute, hour, dayOfWeek, dayOfMonth, month, year;
 
@@ -152,6 +158,13 @@ byte decToBcd(byte val)
   return ( (val / 10 * 16) + (val % 10) );
 }
 
+
+/*
+=======================================================================
+=========================    SERIAL program   =========================
+=======================================================================
+*/
+// FLUSHING SERIAL BUFFER
 void SERFLUSH(void)
 {
   while (true)
@@ -168,6 +181,7 @@ void SERFLUSH(void)
   }
 }
 
+//LATCH SERIAL DATA CODE
 void LTCSER()
 {
   while (Serial.available() > 0)
@@ -206,6 +220,7 @@ void LTCSER()
   }
 }
 
+//LATCH SET HM DATA IN SEC
 void PARSETHM()
 {
   while (Serial.available() > 0) {
@@ -239,6 +254,12 @@ void PARSETHM()
   }
 }
 
+
+/*
+============================================================================
+=========================   SENSOR STATE program   =========================
+============================================================================
+*/
 void LTCSEN()
 {
   HMS();
@@ -306,6 +327,12 @@ void LTCSEN()
   }
 }
 
+
+/*
+=======================================================================
+=========================   RTC R/W program   =========================
+=======================================================================
+*/
 void WRTBYTE(int DVCADDR, unsigned int EEADDR, byte DATA)
 {
   int RDATA = DATA;
@@ -351,6 +378,12 @@ void RDBUF(int DVCADDR, unsigned int EEADDR, byte *BUFFER, int LENGTH)
     if (Wire.available()) BUFFER[DATASEQ] = Wire.read();
 }
 
+
+/*
+=======================================================================
+=========================      HM program     =========================
+=======================================================================
+*/
 void HMS()
 {
   now = rtc.now();
@@ -378,6 +411,13 @@ void HMS()
   VARRTC.HR       = (VARRTC.SVDHM + VARRTC.DELTATIME) / HOURDIV;
 }
 
+
+/*
+===========================================================================
+=========================   RTC R/W sub program   =========================
+===========================================================================
+*/
+//READ HM FROM RTC
 void RDHMRTC()
 {
   uint8_t ADDR  = 0;
@@ -397,6 +437,7 @@ void RDHMRTC()
   //Serial.println(String("Read HM RTC: ") + VARRTC.SVDHM); //for debugging only
 }
 
+//WRITE HM TO RTC
 void HMWRT(unsigned long DATA2CONV)
 {
   char DATA2WRT[12];
@@ -409,6 +450,12 @@ void HMWRT(unsigned long DATA2CONV)
   //Serial.println("DONE SAVE"); //for debugging only
 }
 
+
+/*
+==========================================================================
+=========================  SHUT DOWN PC program  =========================
+==========================================================================
+*/
 void SHPC()
 {
   if ((PIND & (1 << PIND3)) || (VARSH.WAITACC == 6) || (VARSH.WAITRPY == 181)) {
@@ -448,6 +495,12 @@ void SHPC()
   }
 }
 
+
+/*
+=========================================================================
+=========================  LOGIN STATE program  =========================
+=========================================================================
+*/
 void LTCWARN()
 {
   if (!VARSH.LOGSTATE) {
@@ -467,6 +520,12 @@ void LTCWARN()
   }
 }
 
+
+/*
+=======================================================================
+=========================   program PROCESS   =========================
+=======================================================================
+*/
 void PROG()
 {
   LTCSEN();
@@ -474,12 +533,14 @@ void PROG()
   LTCWARN();
 
   switch (VARSER.VAL) {
+    //LOGIN STATE
     case 5:
       VARSH.LOGSTATE = true;
       VARSER.VAL     = 0;
       PORTB &= ~(1 << PINB1);
       break;
 
+    //SHUT DOWN PC
     case 4:
       if (VARSH.SHCODE <= 5) {
         if ((unsigned long)(millis() - PREVSET) > PRTIME) {
@@ -493,6 +554,7 @@ void PROG()
       }
       break;
 
+    //SET HM
     case 3:
       SERFLUSH();
       VARRTC.DELTATIME  = 0;
@@ -512,6 +574,7 @@ void PROG()
 
       break;
 
+    //LOGOUT, SAVE HM, PC STATE DETECTION
     case 2:
       if ((PIND & (1 << PIND3)) && (PIND & (1 << PIND7))) {
         HMWRT(VARRTC.SVDHM + VARRTC.DELTATIME);
@@ -529,6 +592,7 @@ void PROG()
 
       break;
 
+    //SET RTC
     case 1:
       SERFLUSH();
       while (!VARSET.RTCPARSE)
