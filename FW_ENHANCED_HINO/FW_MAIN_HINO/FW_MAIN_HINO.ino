@@ -411,7 +411,7 @@ void HMWRT(unsigned long DATA2CONV)
 
 void SHPC()
 {
-  if ((PIND & (1 << PIND3)) || (VARSH.WAITACC == 6) || (VARSH.WAITRPY == 121)) {
+  if ((PIND & (1 << PIND3)) || (VARSH.WAITACC == 6) || (VARSH.WAITRPY == 181)) {
     if (VARSH.WAITACC <= 5) {
       if ((unsigned long)(millis() - PREVSET) > PRTIME) {
         VARSH.WAITACC++;
