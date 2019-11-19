@@ -8,7 +8,7 @@
 #include "RTClib.h"
 
 // NOTE: CHANGE VARSH.WAITRPY == BOOTIME + 1;
-#define BOOTIME 300                // BOOTING TIME LATTE
+#define BOOTIME 30                // BOOTING TIME LATTE
 #define HOURDIV 3600               // HOUR DIV
 #define MINDIV 60                  // MINUTE DIV
 #define X24C32 0x57                // RTC EEPROM ADDR
@@ -271,16 +271,16 @@ void LTCSEN()
 {
   HMS();
   //for debugging only
-  /*uint8_t PIN3ACC, PIN4DUMP, PIN7ALT, PIN5LOAD, PIN8SH;
+  uint8_t PIN3ACC, PIN4DUMP, PIN7ALT, PIN5LOAD, PIN8SH;
   PIN3ACC   = digitalRead(3);
   PIN4DUMP  = digitalRead(4);
   PIN7ALT   = digitalRead(7);
-  PIN5LOAD  = digitalRead(5);*/
+  PIN5LOAD  = digitalRead(5);
 
 
   if ((unsigned long)(millis() - PREVSEN) > PRTIME) {
     //for debugging only
-    /*Serial.println(String("DELTATIME: ") + VARRTC.DELTATIME);
+    Serial.println(String("DELTATIME: ") + VARRTC.DELTATIME);
     Serial.println(String("ELAPSED: ") + VARRTC.ELAPSED);
     Serial.println(String("HMNOWSEC: ") + (VARRTC.SVDHM + VARRTC.DELTATIME));
     Serial.println(String("PIN3ACC: ") + PIN3ACC);
@@ -290,7 +290,7 @@ void LTCSEN()
     Serial.println(String("WAIT ACC: ") + VARSH.WAITACC);
     Serial.println(String("WAIT SH: ") + VARSH.WAITSH);
     Serial.println(String("WAIT REPLY: ") + VARSH.WAITRPY);
-    Serial.println(String("SH CODE: ") + VARSH.SHCODE);*/
+    Serial.println(String("SH CODE: ") + VARSH.SHCODE);
 
     if ((PIND & (1 << PIND3)) && (!(PIND & (1 << PIND7))) && (!(PIND & (1 << PIND4))) && (!(PIND & (1 << PIND5))))
     {
@@ -463,7 +463,7 @@ void HMWRT(unsigned long DATA2CONV)
 */
 void SHPC()
 {
-  if ((PIND & (1 << PIND3)) || (VARSH.WAITACC == 6) || (VARSH.WAITRPY == 301)) {
+  if ((PIND & (1 << PIND3)) || (VARSH.WAITACC == 6) || (VARSH.WAITRPY == 31)) {
     if (VARSH.WAITACC <= 5) {
       if ((unsigned long)(millis() - PREVSH) > PRTIME) {
         VARSH.WAITACC++;
@@ -489,6 +489,8 @@ void SHPC()
           }
         }
         else {
+          PORTB &= ~(1 << PINB1);
+          VARSH.LOGSTATE = true;
           VARSH.WAITACC = 0;
           VARSH.WAITSH  = 0;
         }
