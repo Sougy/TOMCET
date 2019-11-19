@@ -1,3 +1,9 @@
+/*
+   FMS (Fleet Management System)
+   Build Date : 1/08/2019
+   Last Update : 19/11/2019
+*/
+
 #include <Wire.h>
 #include "RTClib.h"
 
@@ -12,7 +18,7 @@ DateTime now;
 RTC_DS3231 rtc;
 
 //ENGINE STATUS, SENSOR STATUS & FW VERSION
-String VERS = "HWD|FMS-RLSD181119|V1.0|SGY";
+String FWVERS = "HWD_RND|FMSIO_v1.0|AGM";
 String ENGSTAT, TRIGSTAT;
 unsigned long PREVSEN = 0;
 unsigned long PREVSET = 0;
@@ -589,6 +595,7 @@ void PROG()
       VARSH.WAITSH    = 0;
       VARSH.WAITRPY   = 0;
       VARSH.SHCODE    = 0;
+      VARSH.WARNED    = 0;
       VARSH.LOGSTATE  = false;
 
       break;
