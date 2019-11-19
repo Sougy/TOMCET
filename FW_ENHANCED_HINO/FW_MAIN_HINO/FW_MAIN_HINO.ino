@@ -1,14 +1,14 @@
 /*
    FMS (Fleet Management System)
-   Build Date : 1/08/2019
-   Last Update : 19/11/2019
+   Build Date   : 01/08/2019
+   Last Update  : 19/11/2019
 */
 
 #include <Wire.h>
 #include "RTClib.h"
 
+// NOTE: CHANGE VARSH.WAITRPY == BOOTIME + 1;
 #define BOOTIME 300                // BOOTING TIME LATTE
-// NOTE: CHANGE VARSH.WAITRPY BOOTIME + 1;
 #define HOURDIV 3600               // HOUR DIV
 #define MINDIV 60                  // MINUTE DIV
 #define X24C32 0x57                // RTC EEPROM ADDR
