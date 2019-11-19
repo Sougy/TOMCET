@@ -7,7 +7,8 @@
 #include <Wire.h>
 #include "RTClib.h"
 
-#define BOOTIME 180                // BOOTING TIME LATTE
+#define BOOTIME 300                // BOOTING TIME LATTE
+// NOTE: CHANGE VARSH.WAITRPY BOOTIME + 1;
 #define HOURDIV 3600               // HOUR DIV
 #define MINDIV 60                  // MINUTE DIV
 #define X24C32 0x57                // RTC EEPROM ADDR
@@ -22,6 +23,7 @@ String FWVERS = "HWD_RND|FMSIO_v1.0|AGM";
 String ENGSTAT, TRIGSTAT;
 unsigned long PREVSEN = 0;
 unsigned long PREVSET = 0;
+unsigned long PREVSH  = 0;
 
 uint8_t tesCOUNT = 0;
 
@@ -102,9 +104,9 @@ void loop() {
 
 
 /*
-=======================================================================
-=========================   SETTING RTC TIME  =========================
-=======================================================================
+  =======================================================================
+  =========================   SETTING RTC TIME  =========================
+  =======================================================================
 */
 void SETRTC() {
   byte second, minute, hour, dayOfWeek, dayOfMonth, month, year;
@@ -167,9 +169,9 @@ byte decToBcd(byte val)
 
 
 /*
-=======================================================================
-=========================    SERIAL program   =========================
-=======================================================================
+  =======================================================================
+  =========================    SERIAL program   =========================
+  =======================================================================
 */
 // FLUSHING SERIAL BUFFER
 void SERFLUSH(void)
@@ -263,24 +265,24 @@ void PARSETHM()
 
 
 /*
-============================================================================
-=========================   SENSOR STATE program   =========================
-============================================================================
+  ============================================================================
+  =========================   SENSOR STATE program   =========================
+  ============================================================================
 */
 void LTCSEN()
 {
   HMS();
   //for debugging only
-  uint8_t PIN3ACC, PIN4DUMP, PIN7ALT, PIN5LOAD, PIN8SH;
+  /*uint8_t PIN3ACC, PIN4DUMP, PIN7ALT, PIN5LOAD, PIN8SH;
   PIN3ACC   = digitalRead(3);
   PIN4DUMP  = digitalRead(4);
   PIN7ALT   = digitalRead(7);
-  PIN5LOAD  = digitalRead(5);
+  PIN5LOAD  = digitalRead(5);*/
 
 
   if ((unsigned long)(millis() - PREVSEN) > PRTIME) {
     //for debugging only
-    Serial.println(String("DELTATIME: ") + VARRTC.DELTATIME);
+    /*Serial.println(String("DELTATIME: ") + VARRTC.DELTATIME);
     Serial.println(String("ELAPSED: ") + VARRTC.ELAPSED);
     Serial.println(String("HMNOWSEC: ") + (VARRTC.SVDHM + VARRTC.DELTATIME));
     Serial.println(String("PIN3ACC: ") + PIN3ACC);
@@ -291,7 +293,7 @@ void LTCSEN()
     Serial.println(String("WAIT ACC: ") + VARSH.WAITACC);
     Serial.println(String("WAIT SH: ") + VARSH.WAITSH);
     Serial.println(String("WAIT REPLY: ") + VARSH.WAITRPY);
-    Serial.println(String("SH CODE: ") + VARSH.SHCODE);
+    Serial.println(String("SH CODE: ") + VARSH.SHCODE);*/
 
     if ((PIND & (1 << PIND3)) && (!(PIND & (1 << PIND7))) && (!(PIND & (1 << PIND4))) && (!(PIND & (1 << PIND5))))
     {
@@ -336,9 +338,9 @@ void LTCSEN()
 
 
 /*
-=======================================================================
-=========================   RTC R/W program   =========================
-=======================================================================
+  =======================================================================
+  =========================   RTC R/W program   =========================
+  =======================================================================
 */
 void WRTBYTE(int DVCADDR, unsigned int EEADDR, byte DATA)
 {
@@ -387,9 +389,9 @@ void RDBUF(int DVCADDR, unsigned int EEADDR, byte *BUFFER, int LENGTH)
 
 
 /*
-=======================================================================
-=========================      HM program     =========================
-=======================================================================
+  =======================================================================
+  =========================      HM program     =========================
+  =======================================================================
 */
 void HMS()
 {
@@ -420,9 +422,9 @@ void HMS()
 
 
 /*
-===========================================================================
-=========================   RTC R/W sub program   =========================
-===========================================================================
+  ===========================================================================
+  =========================   RTC R/W sub program   =========================
+  ===========================================================================
 */
 //READ HM FROM RTC
 void RDHMRTC()
@@ -459,35 +461,35 @@ void HMWRT(unsigned long DATA2CONV)
 
 
 /*
-==========================================================================
-=========================  SHUT DOWN PC program  =========================
-==========================================================================
+  ==========================================================================
+  =========================  SHUT DOWN PC program  =========================
+  ==========================================================================
 */
 void SHPC()
 {
-  if ((PIND & (1 << PIND3)) || (VARSH.WAITACC == 6) || (VARSH.WAITRPY == 181)) {
+  if ((PIND & (1 << PIND3)) || (VARSH.WAITACC == 6) || (VARSH.WAITRPY == 301)) {
     if (VARSH.WAITACC <= 5) {
-      if ((unsigned long)(millis() - PREVSET) > PRTIME) {
+      if ((unsigned long)(millis() - PREVSH) > PRTIME) {
         VARSH.WAITACC++;
-        PREVSET = millis();
+        PREVSH = millis();
       }
     }
     else {
       if (VARSH.WAITSH <= 5) {
         VARSH.WAITRPY = 0;
         PORTB |= (1 << PINB0);
-        if ((unsigned long)(millis() - PREVSET) > PRTIME) {
+        if ((unsigned long)(millis() - PREVSH) > PRTIME) {
           VARSH.WAITSH++;
-          PREVSET = millis();
+          PREVSH = millis();
         }
       }
       else {
         PORTB &= ~(1 << PINB0);
         //rcv condition code(2) from latte
         if (VARSH.WAITRPY <= BOOTIME) {
-          if ((unsigned long)(millis() - PREVSET) > PRTIME) {
+          if ((unsigned long)(millis() - PREVSH) > PRTIME) {
             VARSH.WAITRPY++;
-            PREVSET = millis();
+            PREVSH = millis();
           }
         }
         else {
@@ -504,9 +506,9 @@ void SHPC()
 
 
 /*
-=========================================================================
-=========================  LOGIN STATE program  =========================
-=========================================================================
+  =========================================================================
+  =========================  LOGIN STATE program  =========================
+  =========================================================================
 */
 void LTCWARN()
 {
@@ -529,9 +531,9 @@ void LTCWARN()
 
 
 /*
-=======================================================================
-=========================   program PROCESS   =========================
-=======================================================================
+  =======================================================================
+  =========================   program PROCESS   =========================
+  =======================================================================
 */
 void PROG()
 {
