@@ -25,8 +25,6 @@ unsigned long PREVSEN = 0;
 unsigned long PREVSET = 0;
 unsigned long PREVSH  = 0;
 
-uint8_t tesCOUNT = 0;
-
 typedef struct
 {
   uint8_t WAITSH  = 0;
@@ -289,7 +287,6 @@ void LTCSEN()
     Serial.println(String("PIN4DUMP: ") + PIN4DUMP);
     Serial.println(String("PIN7ALT: ") + PIN7ALT);
     Serial.println(String("PIN5LOAD: ") + PIN5LOAD);
-    Serial.println(String("IF COUNTED: ") + tesCOUNT);
     Serial.println(String("WAIT ACC: ") + VARSH.WAITACC);
     Serial.println(String("WAIT SH: ") + VARSH.WAITSH);
     Serial.println(String("WAIT REPLY: ") + VARSH.WAITRPY);
@@ -325,7 +322,6 @@ void LTCSEN()
                    VARRTC.MIN + ":" + VARRTC.SEC + "|" + ENGSTAT + "|" + TRIGSTAT + "|");
     }
     else {
-      tesCOUNT++;
       ENGSTAT = "IF";
       TRIGSTAT = "";
       Serial.print(String(VARRTC.CURDATE) + "|" + VARRTC.CURTIME + "|" + VARRTC.HR + ":" +
