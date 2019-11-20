@@ -7,7 +7,6 @@
 #include <Wire.h>
 #include "RTClib.h"
 
-// NOTE: CHANGE VARSH.WAITRPY == BOOTIME + 1;
 #define BOOTIME 30                // BOOTING TIME LATTE
 #define HOURDIV 3600               // HOUR DIV
 #define MINDIV 60                  // MINUTE DIV
