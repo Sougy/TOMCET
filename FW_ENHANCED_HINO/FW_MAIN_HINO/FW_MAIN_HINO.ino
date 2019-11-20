@@ -271,26 +271,26 @@ void LTCSEN()
 {
   HMS();
   //for debugging only
-  uint8_t PIN3ACC, PIN4DUMP, PIN7ALT, PIN5LOAD, PIN8SH;
-  PIN3ACC   = digitalRead(3);
-  PIN4DUMP  = digitalRead(4);
-  PIN7ALT   = digitalRead(7);
-  PIN5LOAD  = digitalRead(5);
+  /*uint8_t PIN3ACC, PIN4DUMP, PIN7ALT, PIN5LOAD, PIN8SH;
+    PIN3ACC   = digitalRead(3);
+    PIN4DUMP  = digitalRead(4);
+    PIN7ALT   = digitalRead(7);
+    PIN5LOAD  = digitalRead(5);*/
 
 
   if ((unsigned long)(millis() - PREVSEN) > PRTIME) {
     //for debugging only
-    Serial.println(String("DELTATIME: ") + VARRTC.DELTATIME);
-    Serial.println(String("ELAPSED: ") + VARRTC.ELAPSED);
-    Serial.println(String("HMNOWSEC: ") + (VARRTC.SVDHM + VARRTC.DELTATIME));
-    Serial.println(String("PIN3ACC: ") + PIN3ACC);
-    Serial.println(String("PIN4DUMP: ") + PIN4DUMP);
-    Serial.println(String("PIN7ALT: ") + PIN7ALT);
-    Serial.println(String("PIN5LOAD: ") + PIN5LOAD);
-    Serial.println(String("WAIT ACC: ") + VARSH.WAITACC);
-    Serial.println(String("WAIT SH: ") + VARSH.WAITSH);
-    Serial.println(String("WAIT REPLY: ") + VARSH.WAITRPY);
-    Serial.println(String("SH CODE: ") + VARSH.SHCODE);
+    /*Serial.println(String("DELTATIME: ") + VARRTC.DELTATIME);
+      Serial.println(String("ELAPSED: ") + VARRTC.ELAPSED);
+      Serial.println(String("HMNOWSEC: ") + (VARRTC.SVDHM + VARRTC.DELTATIME));
+      Serial.println(String("PIN3ACC: ") + PIN3ACC);
+      Serial.println(String("PIN4DUMP: ") + PIN4DUMP);
+      Serial.println(String("PIN7ALT: ") + PIN7ALT);
+      Serial.println(String("PIN5LOAD: ") + PIN5LOAD);
+      Serial.println(String("WAIT ACC: ") + VARSH.WAITACC);
+      Serial.println(String("WAIT SH: ") + VARSH.WAITSH);
+      Serial.println(String("WAIT REPLY: ") + VARSH.WAITRPY);
+      Serial.println(String("SH CODE: ") + VARSH.SHCODE);*/
 
     if ((PIND & (1 << PIND3)) && (!(PIND & (1 << PIND7))) && (!(PIND & (1 << PIND4))) && (!(PIND & (1 << PIND5))))
     {
@@ -396,6 +396,7 @@ void HMS()
   if ((PIND & (1 << PIND3)) && (PIND & (1 << PIND7))) {
     if (!VARRTC.LTCHM) {
       RDHMRTC();
+      //Serial.println(String("SAVED HM ALTON : ") + VARRTC.SVDHM);
       VARRTC.ELAPSED += VARRTC.DELTATIME;
       VARRTC.SVDHM += VARRTC.ELAPSED;
       //Serial.println(String("SVDHM+DELTATIME: ") + VARRTC.SVDHM); //for debugging only
@@ -405,8 +406,16 @@ void HMS()
     }
     VARRTC.DELTATIME = now.unixtime() - VARRTC.LASTUNIX;
   }
-  else {
-    VARRTC.LTCHM     = false;
+  else if ((!(PIND & (1 << PIND7)))) {
+    if (VARRTC.LTCHM) {
+      //Serial.println("SAVING...");
+      HMWRT(VARRTC.SVDHM + VARRTC.DELTATIME);
+      RDHMRTC();
+      VARRTC.ELAPSED  = 0;
+      VARRTC.DELTATIME = 0;
+      VARRTC.LTCHM     = false;
+      //Serial.println("SAVED...");
+    }
   }
   //saat nyala lg waktunya blm update (SVDHM) //closed need to test NOTE: RESET DELTATIME in 2
   VARRTC.CURTIME  = String(now.hour()) + ":" + now.minute() + ":" + now.second();
@@ -583,13 +592,6 @@ void PROG()
 
     //LOGOUT, SAVE HM, PC STATE DETECTION
     case 2:
-      if ((PIND & (1 << PIND3)) && (PIND & (1 << PIND7))) {
-        HMWRT(VARRTC.SVDHM + VARRTC.DELTATIME);
-      } else {
-        HMWRT(VARRTC.SVDHM + VARRTC.ELAPSED + VARRTC.DELTATIME);
-      }
-
-      VARRTC.ELAPSED  = 0;
       VARSER.VAL      = 0;
       VARSH.WAITACC   = 0;
       VARSH.WAITSH    = 0;
