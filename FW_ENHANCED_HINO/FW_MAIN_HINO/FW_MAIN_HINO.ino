@@ -1,7 +1,7 @@
 /*
    FMS (Fleet Management System)
    Build Date   : 01/08/2019
-   Last Update  : 19/11/2019
+   Last Update  : 20/11/2019
 */
 
 #include <Wire.h>
@@ -270,11 +270,11 @@ void LTCSEN()
 {
   HMS();
   //for debugging only
-  /*uint8_t PIN3ACC, PIN4DUMP, PIN7ALT, PIN5LOAD, PIN8SH;
-    PIN3ACC   = digitalRead(3);
-    PIN4DUMP  = digitalRead(4);
-    PIN7ALT   = digitalRead(7);
-    PIN5LOAD  = digitalRead(5);*/
+  uint8_t PIN3ACC, PIN4DUMP, PIN7ALT, PIN5LOAD, PIN8SH;
+  PIN3ACC   = digitalRead(3);
+  PIN4DUMP  = digitalRead(4);
+  PIN7ALT   = digitalRead(7);
+  PIN5LOAD  = digitalRead(5);
 
 
   if ((unsigned long)(millis() - PREVSEN) > PRTIME) {
@@ -290,6 +290,7 @@ void LTCSEN()
       Serial.println(String("WAIT SH: ") + VARSH.WAITSH);
       Serial.println(String("WAIT REPLY: ") + VARSH.WAITRPY);
       Serial.println(String("SH CODE: ") + VARSH.SHCODE);*/
+
 
     if ((PIND & (1 << PIND3)) && (!(PIND & (1 << PIND7))) && (!(PIND & (1 << PIND4))) && (!(PIND & (1 << PIND5))))
     {
@@ -323,6 +324,9 @@ void LTCSEN()
     else {
       ENGSTAT = "IF";
       TRIGSTAT = "";
+      VARSH.WAITACC = 0;
+      //Serial.print("TES4 :");
+      //Serial.println(VARSH.WAITACC);
       Serial.print(String(VARRTC.CURDATE) + "|" + VARRTC.CURTIME + "|" + VARRTC.HR + ":" +
                    VARRTC.MIN + ":" + VARRTC.SEC + "|" + ENGSTAT + "|" + TRIGSTAT + "|");
     }
@@ -471,9 +475,11 @@ void HMWRT(unsigned long DATA2CONV)
 */
 void SHPC()
 {
-  if ((PIND & (1 << PIND3)) || (VARSH.WAITACC == 6) || (VARSH.WAITRPY == 31)) {
+  if ((PIND & (1 << PIND3)) || (VARSH.WAITACC == 6) || (VARSH.WAITRPY == BOOTIME)) {
     if (VARSH.WAITACC <= 5) {
       if ((unsigned long)(millis() - PREVSH) > PRTIME) {
+        //Serial.print("TES 0: ");
+        //Serial.println(VARSH.WAITACC);
         VARSH.WAITACC++;
         PREVSH = millis();
       }
@@ -490,7 +496,7 @@ void SHPC()
       else {
         PORTB &= ~(1 << PINB0);
         //rcv condition code(2) from latte
-        if (VARSH.WAITRPY <= BOOTIME) {
+        if (VARSH.WAITRPY < BOOTIME) {
           if ((unsigned long)(millis() - PREVSH) > PRTIME) {
             VARSH.WAITRPY++;
             PREVSH = millis();
@@ -504,9 +510,6 @@ void SHPC()
         }
       }
     }
-  }
-  else {
-    VARSH.WAITACC = 0;
   }
 }
 
@@ -528,7 +531,7 @@ void LTCWARN()
         PREVSET = millis();
       }
     }
-    else {
+    else if ((!(PIND & (1 << PIND3))) && (!(PIND & (1 << PIND7)))) {
       PORTB &= ~(1 << PINB1);
       VARSH.WARNED  = 0;
     }
@@ -557,7 +560,7 @@ void PROG()
 
     //SHUT DOWN PC
     case 4:
-      if (VARSH.SHCODE <= 5) {
+      if (VARSH.SHCODE < 5) {
         if ((unsigned long)(millis() - PREVSET) > PRTIME) {
           VARSH.SHCODE++;
           Serial.println('$');
