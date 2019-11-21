@@ -7,7 +7,7 @@
 #include <Wire.h>
 #include "RTClib.h"
 
-#define BOOTIME 30                // BOOTING TIME LATTE
+#define BOOTIME 180                // BOOTING TIME LATTE
 #define HOURDIV 3600               // HOUR DIV
 #define MINDIV 60                  // MINUTE DIV
 #define X24C32 0x57                // RTC EEPROM ADDR
@@ -475,7 +475,7 @@ void HMWRT(unsigned long DATA2CONV)
 */
 void SHPC()
 {
-  if ((PIND & (1 << PIND3)) || (VARSH.WAITACC == 6) || (VARSH.WAITRPY == BOOTIME)) {
+  if ((PIND & (1 << PIND3)) || (VARSH.WAITACC == 6) || (VARSH.WAITRPY == 181)) {
     if (VARSH.WAITACC <= 5) {
       if ((unsigned long)(millis() - PREVSH) > PRTIME) {
         //Serial.print("TES 0: ");
@@ -496,7 +496,7 @@ void SHPC()
       else {
         PORTB &= ~(1 << PINB0);
         //rcv condition code(2) from latte
-        if (VARSH.WAITRPY < BOOTIME) {
+        if (VARSH.WAITRPY <= BOOTIME) {
           if ((unsigned long)(millis() - PREVSH) > PRTIME) {
             VARSH.WAITRPY++;
             PREVSH = millis();
