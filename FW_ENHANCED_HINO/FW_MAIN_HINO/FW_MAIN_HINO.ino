@@ -1,7 +1,7 @@
 /*
    FMS (Fleet Management System)
    Build Date   : 01/08/2019
-   Last Update  : 20/11/2019
+   Last Update  : 23/11/2019
 */
 
 #include <Wire.h>
@@ -523,7 +523,7 @@ void SHPC()
 void LTCWARN()
 {
   if (!VARSH.LOGSTATE) {
-    if ((PIND & (1 << PIND3)) && (PIND & (1 << PIND7))) {
+    if ((PIND & (1 << PIND7))) {
       if ((unsigned long)(millis() - PREVSET) > PRTIME) {
         if (VARSH.WARNED >= 2) {
           PORTB ^= (1 << PINB1);
@@ -532,7 +532,7 @@ void LTCWARN()
         PREVSET = millis();
       }
     }
-    else if ((!(PIND & (1 << PIND3))) && (!(PIND & (1 << PIND7)))) {
+    else if ((!(PIND & (1 << PIND7)))) {
       PORTB &= ~(1 << PINB1);
       VARSH.WARNED  = 0;
     }

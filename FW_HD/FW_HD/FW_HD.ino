@@ -152,6 +152,7 @@ void RFCOM()
         printL(PORT, longitude);
         Serial.print("|");
         PORT.println(String(data.text3) + "|" + data.stat + "|");
+        PORTB ^= (1 << PINB0);
         /*PORT.println();
           PORT.println(String("pipeNum: ") + pipeNum);
           PORT.print("Longitude: ");
@@ -171,6 +172,7 @@ void RFCOM()
       printL(PORT, VARGPS.Longi);
       Serial.print("|");
       Serial.println(String(VARGPS.Alti) + "|" + VARGPS.Speed + "|" + VARGPS.Sat + "|" + 0 + "|" + 0 + "|" + "|" + 0 + "|");
+      PORTB ^= (1 << PINB0);
     }
   }
 }
@@ -187,6 +189,7 @@ void setup() {
   gpsPort.begin(9600);
   PORT.begin(9600);
   PORT.flush();
+  DDRB |= (1 << PINB0);
 }
 
 void loop() {
