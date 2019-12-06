@@ -20,13 +20,13 @@ void loop()
     int addr=0; //first address
   
   // access the first address from the memory
-    byte b = i2c_eeprom_read_byte(0x50, 0);
+    byte b = i2c_eeprom_read_byte(0x57, 0);
 
     while (b!=0)
     {
         Serial.print((char)b); //print content to serial port
         addr++; //increase address
-        b = i2c_eeprom_read_byte(0x50, addr); //access an address from the memory
+        b = i2c_eeprom_read_byte(0x57, addr); //access an address from the memory
     }
     Serial.println(" ");
     delay(2000);

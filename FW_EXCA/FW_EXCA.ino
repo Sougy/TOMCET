@@ -38,7 +38,7 @@
 #error You must NOT define NMEAGPS_INTERRUPT_PROCESSING in NMEAGPS_cfg.h!
 #endif
 
-LiquidCrystal_I2C lcd(0x27, 16, 2);
+LiquidCrystal_I2C lcd(0x20, 16, 2);
 
 RF24 radio(CE_PIN, CSN_PIN); // CE, CSN Pins
 const uint64_t address = 0x7878787878LL;
@@ -61,7 +61,7 @@ struct package
 {
   char text1[12];
   char text2[12];
-  char text3[5] = "124";
+  char text3[5] = "127";
   unsigned int stat = 0;
 }; typedef struct package Package;
 Package data;
@@ -82,6 +82,7 @@ static void doSomeWork(const gps_fix & fix)
     radio.write(&data, sizeof(data));
     Serial.println(longitude);
     Serial.println(latitude);
+    Serial.println(fix.satellites);
   } else {
     myString1 = String(longitude);
     myString1.toCharArray(data.text1, sizeof(data.text1));
@@ -122,11 +123,16 @@ void UPTIME()
   VARUP.SEC = VARUP.UPTIME % MINDIV;
   VARUP.MIN = (VARUP.UPTIME % HOURDIV) / MINDIV;
   VARUP.HR  = VARUP.UPTIME / HOURDIV;
-
-  lcd.setCursor(0,0);
-  lcd.print("UPTIME");
-  lcd.setCursor(0,1);
-  lcd.print(String(VARUP.HR)+':'+VARUP.MIN+':'+VARUP.SEC);
+  if (VARUP.SEC == 0) {
+    lcd.setCursor(0, 1);
+    lcd.print("                ");
+  }
+  else {
+    lcd.setCursor(0, 0);
+    lcd.print("UPTIME");
+    lcd.setCursor(0, 1);
+    lcd.print(String(VARUP.HR) + ':' + VARUP.MIN + ':' + VARUP.SEC);
+  }
 }
 
 void setup()
@@ -143,11 +149,12 @@ void setup()
   DDRD &= ~(1 << PIND4);
   PORTD |= (1 << PIND4);
   pinMode(8, OUTPUT);
-  Wire.begin();
   lcd.begin();
+  lcd.backlight();
 }
 
 void loop()
 {
   GPSloop();
+  UPTIME();
 }

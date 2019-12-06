@@ -105,9 +105,9 @@ static void doSomeWork(const gps_fix & fix)
 
     if (fix.valid.satellites)
       VARGPS.Sat    = fix.satellites;
-    VARGPS.Speed  = fix.speed_mph();
+    VARGPS.Speed  = fix.speed_kph();
     /*PORT.println(String("Satelit: ") + VARGPS.Sat);
-      PORT.println(String("Speed mph: ") + VARGPS.Speed);*/
+      PORT.println(String("Speed kph: ") + VARGPS.Speed);*/
   }
   else {
     VARGPS.Longi  = 0;
