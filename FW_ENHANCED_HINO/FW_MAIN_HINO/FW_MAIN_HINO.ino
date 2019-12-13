@@ -81,8 +81,8 @@ void setup() {
   DDRB |= (1 << PINB0); //RELAY
   DDRB |= (1 << PINB1); //BUZZER
   DDRD &= ~(1 << PIND3); //ACC
-  DDRD &= ~(1 << PIND4); //DUMP
-  DDRD &= ~(1 << PIND7); //ALT
+  DDRD &= ~(1 << PIND4); //ALT
+  DDRD &= ~(1 << PIND7); //DUMP
   DDRD &= ~(1 << PIND5); //LOAD
   DDRD  |= (1 << PIND6); //LED INDICATOR
   PORTD &= ~(1 << PIND3);
@@ -296,11 +296,11 @@ void LTCSEN()
     {
       ENGSTAT = "IN";
       TRIGSTAT  = "";
-      if (PIND & (1 << PIND7))
+      if (PIND & (1 << PIND4))
       {
         ENGSTAT = "RG";
         TRIGSTAT  = "";
-        if (PIND & (1 << PIND4))
+        if (PIND & (1 << PIND7))
         {
           TRIGSTAT  = "DG";
         }
@@ -389,7 +389,7 @@ void HMS()
 {
   now = rtc.now();
 
-  if ((PIND & (1 << PIND3)) && (PIND & (1 << PIND7))) {
+  if ((PIND & (1 << PIND3)) && (PIND & (1 << PIND4))) {
     if (!VARRTC.LTCHM) {
       RDHMRTC();
       //Serial.println(String("SAVED HM ALTON : ") + VARRTC.SVDHM);
@@ -402,7 +402,7 @@ void HMS()
     }
     VARRTC.DELTATIME = now.unixtime() - VARRTC.LASTUNIX;
   }
-  else if ((!(PIND & (1 << PIND7)))) {
+  else if ((!(PIND & (1 << PIND4)))) {
     if (VARRTC.LTCHM) {
       //Serial.println("SAVING...");
       HMWRT(VARRTC.SVDHM + VARRTC.DELTATIME);
@@ -515,7 +515,7 @@ void SHPC()
 void LTCWARN()
 {
   if (!VARSH.LOGSTATE) {
-    if ((PIND & (1 << PIND7))) {
+    if ((PIND & (1 << PIND4))) {
       if ((unsigned long)(millis() - PREVSET) > PRTIME) {
         if (VARSH.WARNED >= 2) {
           PORTB ^= (1 << PINB1);
@@ -524,7 +524,7 @@ void LTCWARN()
         PREVSET = millis();
       }
     }
-    else if ((!(PIND & (1 << PIND7)))) {
+    else if ((!(PIND & (1 << PIND4)))) {
       PORTB &= ~(1 << PINB1);
       VARSH.WARNED  = 0;
     }
