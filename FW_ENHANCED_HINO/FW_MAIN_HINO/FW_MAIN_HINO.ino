@@ -281,47 +281,39 @@ void LTCSEN()
   if ((unsigned long)(millis() - PREVSEN) > PRTIME) {
     //for debugging only
     //Serial.println(String("DELTATIME: ") + VARRTC.DELTATIME);
-      //Serial.println(String("ELAPSED: ") + VARRTC.ELAPSED);
-      //Serial.println(String("HMNOWSEC: ") + (VARRTC.SVDHM + VARRTC.DELTATIME));
-      //Serial.println(String("PIN3ACC: ") + PIN3ACC);
-      //Serial.println(String("PIN4DUMP: ") + PIN4DUMP);
-      //Serial.println(String("PIN7ALT: ") + PIN7ALT);
-      //Serial.println(String("PIN5LOAD: ") + PIN5LOAD);
-      //Serial.println(String("WAIT ACC: ") + VARSH.WAITACC);
-      //Serial.println(String("WAIT SH: ") + VARSH.WAITSH);
-      //Serial.println(String("WAIT REPLY: ") + VARSH.WAITRPY);
-      //Serial.println(String("SH CODE: ") + VARSH.SHCODE);*/
+    //Serial.println(String("ELAPSED: ") + VARRTC.ELAPSED);
+    //Serial.println(String("HMNOWSEC: ") + (VARRTC.SVDHM + VARRTC.DELTATIME));
+    //Serial.println(String("PIN3ACC: ") + PIN3ACC);
+    //Serial.println(String("PIN4DUMP: ") + PIN4DUMP);
+    //Serial.println(String("PIN7ALT: ") + PIN7ALT);
+    //Serial.println(String("PIN5LOAD: ") + PIN5LOAD);
+    //Serial.println(String("WAIT ACC: ") + VARSH.WAITACC);
+    //Serial.println(String("WAIT SH: ") + VARSH.WAITSH);
+    //Serial.println(String("WAIT REPLY: ") + VARSH.WAITRPY);
+    //Serial.println(String("SH CODE: ") + VARSH.SHCODE);*/
+
+    if (PIND & (1 << PIND3))
+    {
+      ENGSTAT = "IN";
+      TRIGSTAT  = "";
+      if (PIND & (1 << PIND7))
+      {
+        ENGSTAT = "RG";
+        TRIGSTAT  = "";
+        if (PIND & (1 << PIND4))
+        {
+          TRIGSTAT  = "DG";
+        }
+        else if (PIND & (1 << PIND5))
+        {
+          TRIGSTAT  = "LG";
+        }
+      }
+      Serial.print(String(VARRTC.CURDATE) + "|" + VARRTC.CURTIME + "|" + VARRTC.HR + ":" +
+                   VARRTC.MIN + ":" + VARRTC.SEC + "|" + ENGSTAT + "|" + TRIGSTAT + "|");
+    }
 
 
-    if ((PIND & (1 << PIND3)) && (!(PIND & (1 << PIND7))) && (!(PIND & (1 << PIND4))) && (!(PIND & (1 << PIND5))))
-    {
-      ENGSTAT   = "IN";
-      TRIGSTAT  = "";
-      Serial.print(String(VARRTC.CURDATE) + "|" + VARRTC.CURTIME + "|" + VARRTC.HR + ":" +
-                   VARRTC.MIN + ":" + VARRTC.SEC + "|" + ENGSTAT + "|" + TRIGSTAT + "|");
-    }
-    else if ((PIND & (1 << PIND3)) && (PIND & (1 << PIND7)) && (!(PIND & (1 << PIND4))) && (!(PIND & (1 << PIND5))))
-    {
-      PORTD ^= (1 << PIND6);
-      ENGSTAT = "RG";
-      TRIGSTAT  = "";
-      Serial.print(String(VARRTC.CURDATE) + "|" + VARRTC.CURTIME + "|" + VARRTC.HR + ":" +
-                   VARRTC.MIN + ":" + VARRTC.SEC + "|" + ENGSTAT + "|" + TRIGSTAT + "|");
-    }
-    else if ((PIND & (1 << PIND3)) && (PIND & (1 << PIND7)) && (PIND & (1 << PIND4)) && (!(PIND & (1 << PIND5))))
-    {
-      ENGSTAT = "RG";
-      TRIGSTAT = "DG";
-      Serial.print(String(VARRTC.CURDATE) + "|" + VARRTC.CURTIME + "|" + VARRTC.HR + ":" +
-                   VARRTC.MIN + ":" + VARRTC.SEC + "|" + ENGSTAT + "|" + TRIGSTAT + "|");
-    }
-    else if ((PIND & (1 << PIND3)) && (PIND & (1 << PIND7)) && (!(PIND & (1 << PIND4))) && (PIND & (1 << PIND5)))
-    {
-      ENGSTAT = "RG";
-      TRIGSTAT = "LG";
-      Serial.print(String(VARRTC.CURDATE) + "|" + VARRTC.CURTIME + "|" + VARRTC.HR + ":" +
-                   VARRTC.MIN + ":" + VARRTC.SEC + "|" + ENGSTAT + "|" + TRIGSTAT + "|");
-    }
     else {
       ENGSTAT = "IF";
       TRIGSTAT = "";
