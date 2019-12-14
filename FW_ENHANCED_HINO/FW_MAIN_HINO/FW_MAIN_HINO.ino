@@ -9,6 +9,8 @@
 
 // BOOTIME VARSH.WAITRPY == BOOTIME + 1
 #define BOOTIME 180                // BOOTING TIME LATTE
+#define BUZINTRVL 600              // BUZZER INTERVAL ALARM
+#define PREBUZON  2                // PRE BUZZER ON TIME 
 #define HOURDIV 3600               // HOUR DIV
 #define MINDIV 60                  // MINUTE DIV
 #define X24C32 0x57                // RTC EEPROM ADDR
@@ -32,7 +34,9 @@ typedef struct
   uint8_t WAITRPY = 0;
   uint8_t SHCODE  = 0;
   uint8_t WARNED  = 0;
+  uint16_t HANG   = 0;
   bool LOGSTATE   = false;
+  bool HANGSTATE  = false;
 } LATTESH; LATTESH VARSH;
 
 typedef struct
@@ -80,6 +84,8 @@ void setup() {
   // put your setup code here, to run once:
   DDRB |= (1 << PINB0); //RELAY
   DDRB |= (1 << PINB1); //BUZZER
+  DDRB &= ~(1 << PINB2); //BUTTON
+  PORTB |= (1 << PINB2);
   DDRD &= ~(1 << PIND3); //ACC
   DDRD &= ~(1 << PIND4); //ALT
   DDRD &= ~(1 << PIND7); //DUMP
@@ -272,10 +278,10 @@ void LTCSEN()
   HMS();
   //for debugging only
   /*uint8_t PIN3ACC, PIN4DUMP, PIN7ALT, PIN5LOAD, PIN8SH;
-  PIN3ACC   = digitalRead(3);
-  PIN4DUMP  = digitalRead(4);
-  PIN7ALT   = digitalRead(7);
-  PIN5LOAD  = digitalRead(5);*/
+    PIN3ACC   = digitalRead(3);
+    PIN4DUMP  = digitalRead(4);
+    PIN7ALT   = digitalRead(7);
+    PIN5LOAD  = digitalRead(5);*/
 
 
   if ((unsigned long)(millis() - PREVSEN) > PRTIME) {
@@ -300,6 +306,7 @@ void LTCSEN()
       {
         ENGSTAT = "RG";
         TRIGSTAT  = "";
+        PORTD ^= (1 << PIND6);
         if (PIND & (1 << PIND7))
         {
           TRIGSTAT  = "DG";
@@ -514,10 +521,16 @@ void SHPC()
 */
 void LTCWARN()
 {
-  if (!VARSH.LOGSTATE) {
+  if (!VARSH.LOGSTATE && !VARSH.HANGSTATE) {
+    if (!(PINB & (1 << PINB2))) {
+      PORTB &= ~(1 << PINB1);
+      VARSH.WARNED  = 0;
+      VARSH.HANGSTATE  = true;
+    }
+
     if ((PIND & (1 << PIND4))) {
       if ((unsigned long)(millis() - PREVSET) > PRTIME) {
-        if (VARSH.WARNED >= 2) {
+        if (VARSH.WARNED >= PREBUZON) {
           PORTB ^= (1 << PINB1);
         }
         VARSH.WARNED++;
@@ -527,6 +540,20 @@ void LTCWARN()
     else if ((!(PIND & (1 << PIND4)))) {
       PORTB &= ~(1 << PINB1);
       VARSH.WARNED  = 0;
+    }
+  }
+
+  else if (!VARSH. LOGSTATE && VARSH.HANGSTATE) {
+    if ((unsigned long)(millis() - PREVSET) > PRTIME) {
+      VARSH.HANG++;
+      if (VARSH.HANG <= 3) {
+        Serial.println('@');
+      }
+      if (VARSH.HANG == BUZINTRVL) {
+        VARSH.HANGSTATE   = false;
+        VARSH.HANG        = 0;
+      }
+      PREVSET = millis();
     }
   }
 }
@@ -546,9 +573,12 @@ void PROG()
   switch (VARSER.VAL) {
     //LOGIN STATE
     case 5:
-      VARSH.LOGSTATE = true;
-      VARSER.VAL     = 0;
       PORTB &= ~(1 << PINB1);
+      VARSH.LOGSTATE  = true;
+      VARSH.HANGSTATE = false;
+      VARSH.HANG      = 0;
+      VARSH.WARNED    = 0;
+      VARSER.VAL      = 0;
       break;
 
     //SHUT DOWN PC
