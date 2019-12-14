@@ -26,6 +26,7 @@ String ENGSTAT, TRIGSTAT;
 unsigned long PREVSEN = 0;
 unsigned long PREVSET = 0;
 unsigned long PREVSH  = 0;
+uint8_t HORNING;
 
 typedef struct
 {
@@ -276,12 +277,15 @@ void PARSETHM()
 void LTCSEN()
 {
   HMS();
+  HORNING = digitalRead(4);
   //for debugging only
   /*uint8_t PIN3ACC, PIN4DUMP, PIN7ALT, PIN5LOAD, PIN8SH;
     PIN3ACC   = digitalRead(3);
     PIN4DUMP  = digitalRead(4);
     PIN7ALT   = digitalRead(7);
     PIN5LOAD  = digitalRead(5);*/
+  //uint8_t PIN10BUT;
+  //PIN10BUT  = digitalRead(10);
 
 
   if ((unsigned long)(millis() - PREVSEN) > PRTIME) {
@@ -293,10 +297,11 @@ void LTCSEN()
     //Serial.println(String("PIN4DUMP: ") + PIN4DUMP);
     //Serial.println(String("PIN7ALT: ") + PIN7ALT);
     //Serial.println(String("PIN5LOAD: ") + PIN5LOAD);
+    //Serial.println(String("PIN10BUT: ") + PIN10BUT);
     //Serial.println(String("WAIT ACC: ") + VARSH.WAITACC);
     //Serial.println(String("WAIT SH: ") + VARSH.WAITSH);
     //Serial.println(String("WAIT REPLY: ") + VARSH.WAITRPY);
-    //Serial.println(String("SH CODE: ") + VARSH.SHCODE);*/
+    //Serial.println(String("SH CODE: ") + VARSH.SHCODE);
 
     if (PIND & (1 << PIND3))
     {
@@ -396,9 +401,9 @@ void HMS()
 {
   now = rtc.now();
 
-  if ((PIND & (1 << PIND3)) && (PIND & (1 << PIND4))) {
+  if ((PIND & (1 << PIND3)) && (HORNING == 1)) {
     if (!VARRTC.LTCHM) {
-      RDHMRTC();
+      //RDHMRTC();
       //Serial.println(String("SAVED HM ALTON : ") + VARRTC.SVDHM);
       VARRTC.ELAPSED += VARRTC.DELTATIME;
       VARRTC.SVDHM += VARRTC.ELAPSED;
@@ -409,7 +414,7 @@ void HMS()
     }
     VARRTC.DELTATIME = now.unixtime() - VARRTC.LASTUNIX;
   }
-  else if ((!(PIND & (1 << PIND4)))) {
+  else if (HORNING == 0) {
     if (VARRTC.LTCHM) {
       //Serial.println("SAVING...");
       HMWRT(VARRTC.SVDHM + VARRTC.DELTATIME);
@@ -418,6 +423,7 @@ void HMS()
       VARRTC.DELTATIME = 0;
       VARRTC.LTCHM     = false;
       //Serial.println("SAVED...");
+      //Serial.println(String("SAVED HM ALTON : ") + VARRTC.SVDHM);
     }
   }
   //saat nyala lg waktunya blm update (SVDHM) //closed need to test NOTE: RESET DELTATIME in 2
@@ -524,11 +530,11 @@ void LTCWARN()
   if (!VARSH.LOGSTATE && !VARSH.HANGSTATE) {
     if (!(PINB & (1 << PINB2))) {
       PORTB &= ~(1 << PINB1);
-      VARSH.WARNED  = 0;
       VARSH.HANGSTATE  = true;
     }
 
-    if ((PIND & (1 << PIND4))) {
+    //if ((PIND & (1 << PIND4))) {
+    if (HORNING == 1) {
       if ((unsigned long)(millis() - PREVSET) > PRTIME) {
         if (VARSH.WARNED >= PREBUZON) {
           PORTB ^= (1 << PINB1);
@@ -537,9 +543,10 @@ void LTCWARN()
         PREVSET = millis();
       }
     }
-    else if ((!(PIND & (1 << PIND4)))) {
+    //else if ((!(PIND & (1 << PIND4)))) {
+    else if (HORNING == 0) {
       PORTB &= ~(1 << PINB1);
-      VARSH.WARNED  = 0;
+      VARSH.WARNED = 0;
     }
   }
 
@@ -617,13 +624,13 @@ void PROG()
 
     //LOGOUT, SAVE HM, PC STATE DETECTION
     case 2:
-      VARSER.VAL      = 0;
       VARSH.WAITACC   = 0;
       VARSH.WAITSH    = 0;
       VARSH.WAITRPY   = 0;
       VARSH.SHCODE    = 0;
       VARSH.WARNED    = 0;
       VARSH.LOGSTATE  = false;
+      VARSER.VAL      = 0;
 
       break;
 
