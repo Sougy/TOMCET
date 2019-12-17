@@ -1,7 +1,7 @@
 /*
    FMS (Fleet Management System)
    Build Date   : 01/08/2019
-   Last Update  : 23/11/2019
+   Last Update  : 17/12/2019
 */
 
 #include <Wire.h>
@@ -26,7 +26,6 @@ String ENGSTAT, TRIGSTAT;
 unsigned long PREVSEN = 0;
 unsigned long PREVSET = 0;
 unsigned long PREVSH  = 0;
-uint8_t HORNING;
 
 typedef struct
 {
@@ -88,8 +87,8 @@ void setup() {
   DDRB &= ~(1 << PINB2); //BUTTON
   PORTB |= (1 << PINB2);
   DDRD &= ~(1 << PIND3); //ACC
-  DDRD &= ~(1 << PIND4); //ALT
-  DDRD &= ~(1 << PIND7); //DUMP
+  DDRD &= ~(1 << PIND7); //ALT
+  DDRD &= ~(1 << PIND4); //DUMP
   DDRD &= ~(1 << PIND5); //LOAD
   DDRD  |= (1 << PIND6); //LED INDICATOR
   PORTD &= ~(1 << PIND3);
@@ -277,15 +276,12 @@ void PARSETHM()
 void LTCSEN()
 {
   HMS();
-  HORNING = digitalRead(4);
   //for debugging only
   /*uint8_t PIN3ACC, PIN4DUMP, PIN7ALT, PIN5LOAD, PIN8SH;
     PIN3ACC   = digitalRead(3);
     PIN4DUMP  = digitalRead(4);
     PIN7ALT   = digitalRead(7);
     PIN5LOAD  = digitalRead(5);*/
-  //uint8_t PIN10BUT;
-  //PIN10BUT  = digitalRead(10);
 
 
   if ((unsigned long)(millis() - PREVSEN) > PRTIME) {
@@ -297,35 +293,41 @@ void LTCSEN()
     //Serial.println(String("PIN4DUMP: ") + PIN4DUMP);
     //Serial.println(String("PIN7ALT: ") + PIN7ALT);
     //Serial.println(String("PIN5LOAD: ") + PIN5LOAD);
-    //Serial.println(String("PIN10BUT: ") + PIN10BUT);
     //Serial.println(String("WAIT ACC: ") + VARSH.WAITACC);
     //Serial.println(String("WAIT SH: ") + VARSH.WAITSH);
     //Serial.println(String("WAIT REPLY: ") + VARSH.WAITRPY);
-    //Serial.println(String("SH CODE: ") + VARSH.SHCODE);
+    //Serial.println(String("SH CODE: ") + VARSH.SHCODE);*/
 
-    if (PIND & (1 << PIND3))
+
+    if ((PIND & (1 << PIND3)) && (!(PIND & (1 << PIND7))) && (!(PIND & (1 << PIND4))) && (!(PIND & (1 << PIND5))))
     {
-      ENGSTAT = "IN";
+      ENGSTAT   = "IN";
       TRIGSTAT  = "";
-      if (PIND & (1 << PIND4))
-      {
-        ENGSTAT = "RG";
-        TRIGSTAT  = "";
-        PORTD ^= (1 << PIND6);
-        if (PIND & (1 << PIND7))
-        {
-          TRIGSTAT  = "DG";
-        }
-        else if (PIND & (1 << PIND5))
-        {
-          TRIGSTAT  = "LG";
-        }
-      }
       Serial.print(String(VARRTC.CURDATE) + "|" + VARRTC.CURTIME + "|" + VARRTC.HR + ":" +
                    VARRTC.MIN + ":" + VARRTC.SEC + "|" + ENGSTAT + "|" + TRIGSTAT + "|");
     }
-
-
+    else if ((PIND & (1 << PIND3)) && (PIND & (1 << PIND7)) && (!(PIND & (1 << PIND4))) && (!(PIND & (1 << PIND5))))
+    {
+      PORTD ^= (1 << PIND6);
+      ENGSTAT = "RG";
+      TRIGSTAT  = "";
+      Serial.print(String(VARRTC.CURDATE) + "|" + VARRTC.CURTIME + "|" + VARRTC.HR + ":" +
+                   VARRTC.MIN + ":" + VARRTC.SEC + "|" + ENGSTAT + "|" + TRIGSTAT + "|");
+    }
+    else if ((PIND & (1 << PIND3)) && (PIND & (1 << PIND7)) && (PIND & (1 << PIND4)) && (!(PIND & (1 << PIND5))))
+    {
+      ENGSTAT = "RG";
+      TRIGSTAT = "DG";
+      Serial.print(String(VARRTC.CURDATE) + "|" + VARRTC.CURTIME + "|" + VARRTC.HR + ":" +
+                   VARRTC.MIN + ":" + VARRTC.SEC + "|" + ENGSTAT + "|" + TRIGSTAT + "|");
+    }
+    else if ((PIND & (1 << PIND3)) && (PIND & (1 << PIND7)) && (!(PIND & (1 << PIND4))) && (PIND & (1 << PIND5)))
+    {
+      ENGSTAT = "RG";
+      TRIGSTAT = "LG";
+      Serial.print(String(VARRTC.CURDATE) + "|" + VARRTC.CURTIME + "|" + VARRTC.HR + ":" +
+                   VARRTC.MIN + ":" + VARRTC.SEC + "|" + ENGSTAT + "|" + TRIGSTAT + "|");
+    }
     else {
       ENGSTAT = "IF";
       TRIGSTAT = "";
@@ -401,9 +403,8 @@ void HMS()
 {
   now = rtc.now();
 
-  if ((PIND & (1 << PIND3)) && (HORNING == 1)) {
+  if (PIND & (1 << PIND7)) {
     if (!VARRTC.LTCHM) {
-      //RDHMRTC();
       //Serial.println(String("SAVED HM ALTON : ") + VARRTC.SVDHM);
       VARRTC.ELAPSED += VARRTC.DELTATIME;
       VARRTC.SVDHM += VARRTC.ELAPSED;
@@ -414,13 +415,14 @@ void HMS()
     }
     VARRTC.DELTATIME = now.unixtime() - VARRTC.LASTUNIX;
   }
-  else if (HORNING == 0) {
+  else if (!(PIND & (1 << PIND7))) {
     if (VARRTC.LTCHM) {
       //Serial.println("SAVING...");
       HMWRT(VARRTC.SVDHM + VARRTC.DELTATIME);
+      VARRTC.ELAPSED    = 0;
+      VARRTC.DELTATIME  = 0;
+      VARRTC.SVDHM      = 0;
       RDHMRTC();
-      VARRTC.ELAPSED  = 0;
-      VARRTC.DELTATIME = 0;
       VARRTC.LTCHM     = false;
       //Serial.println("SAVED...");
       //Serial.println(String("SAVED HM ALTON : ") + VARRTC.SVDHM);
@@ -533,8 +535,7 @@ void LTCWARN()
       VARSH.HANGSTATE  = true;
     }
 
-    //if ((PIND & (1 << PIND4))) {
-    if (HORNING == 1) {
+    if ((PIND & (1 << PIND7))) {
       if ((unsigned long)(millis() - PREVSET) > PRTIME) {
         if (VARSH.WARNED >= PREBUZON) {
           PORTB ^= (1 << PINB1);
@@ -543,8 +544,7 @@ void LTCWARN()
         PREVSET = millis();
       }
     }
-    //else if ((!(PIND & (1 << PIND4)))) {
-    else if (HORNING == 0) {
+    else if ((!(PIND & (1 << PIND7)))) {
       PORTB &= ~(1 << PINB1);
       VARSH.WARNED = 0;
     }
