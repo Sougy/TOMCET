@@ -1,7 +1,7 @@
 /*
    FMS (Fleet Management System)
    Build Date   : 01/08/2019
-   Last Update  : 17/12/2019
+   Last Update  : 21/12/2019
 */
 
 #include <Wire.h>
@@ -72,7 +72,7 @@ typedef struct
   bool INHM   = false;
   bool START  = false;
   bool END    = false;
-  uint8_t VAL = 0;
+  uint8_t VAL = 4;
   uint8_t SEQ = 0;
   uint8_t I;
   char INBYTE;
@@ -486,7 +486,7 @@ void HMWRT(unsigned long DATA2CONV)
 */
 void SHPC()
 {
-  if ((VARADC.VIN[ADCACC] > VARADC.VREF) || (VARSH.WAITACC == 6) || (VARSH.WAITRPY == 181)) {
+  if ((VARADC.VIN[ADCACC] > VARADC.VREF) || (VARADC.VIN[ADCALT] > VARADC.VREF) || (VARSH.WAITACC == 6) || (VARSH.WAITRPY == 181)) {
     if (VARSH.WAITACC <= 5) {
       if ((unsigned long)(millis() - PREVSH) > PRTIME) {
         //Serial.print("TES 0: ");
