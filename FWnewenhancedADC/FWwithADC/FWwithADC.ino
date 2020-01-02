@@ -1,7 +1,7 @@
 /*
    FMS (Fleet Management System)
-   Build Date   : 01/08/2019
-   Last Update  : 21/12/2019
+   Build Date   : 01/10/2019
+   Last Update  : 30/12/2019
 */
 
 #include <Wire.h>
@@ -16,9 +16,9 @@
 #define X24C32 0x57                // RTC EEPROM ADDR
 #define PRTIME 1000                // INTERVAL DELAY
 #define DS3231_I2C_ADDRESS 0x68    // RTC ADDR
-#define ADCACC 0                   // ACC ADDR COMPARATOR
-#define ADCALT 1                   // ALT ADDR COMPARATOR
-#define ADCDUMP 2                  // DUMP ADDR COMPARATOR
+#define ADCACC 0                   // ACC ADDR INDEX COMPARATOR
+#define ADCALT 1                   // ALT ADDR INDEX COMPARATOR
+#define ADCDUMP 2                  // DUMP ADDR INDEX COMPARATOR
 
 DateTime now;
 RTC_DS3231 rtc;
@@ -104,8 +104,10 @@ void setup() {
   DDRB &= ~(1 << PINB2); //BUTTON
   PORTB |= (1 << PINB2);
   DDRD &= ~(1 << PIND5); //LOAD
-  DDRD  |= (1 << PIND6); //LED INDICATOR
   PORTD &= ~(1 << PIND5);
+  DDRD |= (1 << PIND4); //RST ENABLE/DISABLE
+  PORTD |= (1 << PIND4); //RST DISABLE
+  DDRD  |= (1 << PIND6); //LED INDICATOR
   Wire.begin();
   rtc.begin();
   Serial.begin(9600);
