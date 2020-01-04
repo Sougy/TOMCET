@@ -8,6 +8,7 @@
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
 
+#define ANIN 3
 #define HOURDIV 3600
 #define MINDIV 60
 #define CE_PIN 9
@@ -48,6 +49,19 @@ int32_t latitude = -4523180; //-12918241
 String myString1;
 String myString2;
 int i;
+uint8_t SAT = 0;
+
+
+typedef struct
+{
+  float VOUT      = 0.0;
+  float VIN       = 0.0;
+  float RREF1     = 1000000.0;
+  float RREF2     = 100000.0;
+  uint8_t VREF    = 2;
+  int VALUE       = 0;
+  bool HORNSTATE  = false;
+} HORN; HORN VARHORN;
 
 typedef struct
 {
@@ -61,7 +75,7 @@ struct package
 {
   char text1[12];
   char text2[12];
-  char text3[5] = "127";
+  char text3[5] = "126";
   unsigned int stat = 0;
 }; typedef struct package Package;
 Package data;
@@ -73,7 +87,8 @@ static void doSomeWork(const gps_fix & fix)
 {
   if (fix.valid.location) {
     if (fix.dateTime.seconds < 60)
-      longitude = fix.longitudeL();
+      INHORN();
+    longitude = fix.longitudeL();
     latitude = fix.latitudeL();
     myString1 = String(longitude);
     myString1.toCharArray(data.text1, sizeof(data.text1));
@@ -83,6 +98,8 @@ static void doSomeWork(const gps_fix & fix)
     Serial.println(longitude);
     Serial.println(latitude);
     Serial.println(fix.satellites);
+    SAT = fix.satellites;
+    Serial.println(VARHORN.VIN);
   } else {
     myString1 = String(longitude);
     myString1.toCharArray(data.text1, sizeof(data.text1));
@@ -92,7 +109,7 @@ static void doSomeWork(const gps_fix & fix)
     Serial.println('?');
   }
 
-  if (!(PIND & (1 << PIND4))) {
+  if (VARHORN.HORNSTATE) {
     data.stat = 1;
     for (i = 0; i <= 10; i++) {
       PORTB ^= (1 << PINB0);
@@ -104,7 +121,6 @@ static void doSomeWork(const gps_fix & fix)
       VARUP.UPTIME++;
       delay(SEND_RATE);
     }
-    PORTB &= ~(1 << PINB0);
     data.stat = 0;
     i = 0;
   }
@@ -131,7 +147,23 @@ void UPTIME()
     lcd.setCursor(0, 0);
     lcd.print("UPTIME");
     lcd.setCursor(0, 1);
-    lcd.print(String(VARUP.HR) + ':' + VARUP.MIN + ':' + VARUP.SEC);
+    lcd.print(String(VARUP.HR) + ':' + VARUP.MIN + ':' + VARUP.SEC + "       " + SAT);
+  }
+}
+
+void INHORN()
+{
+  VARHORN.VALUE = analogRead(ANIN);
+  VARHORN.VOUT  = (VARHORN.VALUE * 5.0) / 1024.0;
+  VARHORN.VIN   = VARHORN.VOUT / (VARHORN.RREF2 / (VARHORN.RREF1 + VARHORN.RREF2));
+  if (VARHORN.VIN < 0.09) {
+    VARHORN.VIN = 0.0;
+  }
+  if (VARHORN.VIN > VARHORN.VREF) {
+    VARHORN.HORNSTATE = true;
+  } else {
+    VARHORN.HORNSTATE = false;
+    PORTB &= ~(1 << PINB0);
   }
 }
 
@@ -146,8 +178,9 @@ void setup()
   Serial.begin(9600);
   Serial.flush();
   gpsPort.begin(9600);
-  DDRD &= ~(1 << PIND4);
-  PORTD |= (1 << PIND4);
+  //DDRD &= ~(1 << PIND4);
+  //PORTD |= (1 << PIND4);
+  pinMode(ANIN, INPUT);
   pinMode(8, OUTPUT);
   lcd.begin();
   lcd.backlight();
@@ -157,4 +190,5 @@ void loop()
 {
   GPSloop();
   UPTIME();
+  INHORN();
 }

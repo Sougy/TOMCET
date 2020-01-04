@@ -1981,11 +1981,11 @@ design rules under a new name.</description>
 </pass>
 </autorouter>
 <elements>
-<element name="C1" library="rcl" library_urn="urn:adsk.eagle:library:334" package="C025-024X044" package3d_urn="urn:adsk.eagle:package:23630/1" value="22pF" x="71.3130375" y="28.160975" rot="R90">
-<attribute name="SPICEPREFIX" value="C" x="71.3130375" y="28.160975" size="1.778" layer="27" rot="R90" display="off"/>
+<element name="C1" library="rcl" library_urn="urn:adsk.eagle:library:334" package="C025-024X044" package3d_urn="urn:adsk.eagle:package:23630/1" value="22pF" x="71.20635625" y="26.230575" rot="R90">
+<attribute name="SPICEPREFIX" value="C" x="71.20635625" y="26.230575" size="1.778" layer="27" rot="R90" display="off"/>
 </element>
-<element name="C2" library="rcl" library_urn="urn:adsk.eagle:library:334" package="C025-024X044" package3d_urn="urn:adsk.eagle:package:23630/1" value="22pF" x="71.26731875" y="23.215590625" rot="R270">
-<attribute name="SPICEPREFIX" value="C" x="71.26731875" y="23.215590625" size="1.778" layer="27" rot="R270" display="off"/>
+<element name="C2" library="rcl" library_urn="urn:adsk.eagle:library:334" package="C025-024X044" package3d_urn="urn:adsk.eagle:package:23630/1" value="22pF" x="75.76311875" y="19.679909375">
+<attribute name="SPICEPREFIX" value="C" x="75.76311875" y="19.679909375" size="1.778" layer="27" display="off"/>
 </element>
 <element name="C4" library="rcl" library_urn="urn:adsk.eagle:library:334" package="E5-13" package3d_urn="urn:adsk.eagle:package:23375/1" value="2200uF" x="12.915896875" y="5.750559375" rot="R180">
 <attribute name="SPICEPREFIX" value="C" x="12.915896875" y="5.750559375" size="1.778" layer="27" rot="R180" display="off"/>
@@ -1998,7 +1998,7 @@ design rules under a new name.</description>
 </element>
 <element name="D1" library="diode" library_urn="urn:adsk.eagle:library:210" package="DO41Z10" package3d_urn="urn:adsk.eagle:package:43341/1" value="1N4733A" x="59.687465625" y="19.626575" rot="R90"/>
 <element name="D2" library="diode" library_urn="urn:adsk.eagle:library:210" package="DO41Z10" package3d_urn="urn:adsk.eagle:package:43341/1" value="1N4733A" x="62.69736875" y="6.98501875" rot="R359.9"/>
-<element name="JP4" library="pinhead" library_urn="urn:adsk.eagle:library:325" package="1X04" package3d_urn="urn:adsk.eagle:package:22407/2" value="GPS" x="60.970159375" y="30.69845" rot="R180"/>
+<element name="JP4" library="pinhead" library_urn="urn:adsk.eagle:library:325" package="1X04" package3d_urn="urn:adsk.eagle:package:22407/2" value="GPS" x="60.970159375" y="31.44775" rot="R180"/>
 <element name="JP5" library="pinhead" library_urn="urn:adsk.eagle:library:325" package="1X06" package3d_urn="urn:adsk.eagle:package:22472/2" value="NRF24L01" x="103.1519375" y="43.428915625" rot="R180"/>
 <element name="JP6" library="pinhead" library_urn="urn:adsk.eagle:library:325" package="1X02" package3d_urn="urn:adsk.eagle:package:22435/2" value="PWR NRF" x="96.753671875" y="55.227215625" rot="R90"/>
 <element name="LED1" library="led" library_urn="urn:adsk.eagle:library:259" package="LED3MM" package3d_urn="urn:adsk.eagle:package:15797/1" value="TLLR4400" x="39.161715625" y="10.320021875">
@@ -2094,8 +2094,9 @@ design rules under a new name.</description>
 <contactref element="C1" pad="2"/>
 <wire x1="81.147921875" y1="30.274259375" x2="76.542896875" y2="30.274259375" width="0.762" layer="16"/>
 <wire x1="76.542896875" y1="30.274259375" x2="75.93330625" y2="29.66466875" width="0.762" layer="16"/>
-<wire x1="71.3130375" y1="29.430975" x2="75.6996125" y2="29.430975" width="0.762" layer="16"/>
 <wire x1="75.6996125" y1="29.430975" x2="75.93330625" y2="29.66466875" width="0.762" layer="16"/>
+<wire x1="71.20635625" y1="27.500575" x2="73.37045" y2="29.66466875" width="0.762" layer="16"/>
+<wire x1="73.37045" y1="29.66466875" x2="75.93330625" y2="29.66466875" width="0.762" layer="16"/>
 </signal>
 <signal name="N$2">
 <contactref element="U1" pad="10"/>
@@ -2105,8 +2106,8 @@ design rules under a new name.</description>
 <wire x1="75.93330625" y1="26.461725" x2="77.1906" y2="27.71901875" width="0.762" layer="16"/>
 <wire x1="77.1906" y1="27.71901875" x2="81.13268125" y2="27.71901875" width="0.762" layer="16"/>
 <wire x1="81.13268125" y1="27.71901875" x2="81.147921875" y2="27.734259375" width="0.762" layer="16"/>
-<wire x1="73.294228125" y1="21.945590625" x2="71.26731875" y2="21.945590625" width="0.762" layer="16"/>
-<wire x1="75.93330625" y1="24.58466875" x2="73.294228125" y2="21.945590625" width="0.762" layer="16"/>
+<wire x1="77.03311875" y1="19.679909375" x2="77.03311875" y2="23.48485625" width="0.762" layer="16"/>
+<wire x1="77.03311875" y1="23.48485625" x2="75.93330625" y2="24.58466875" width="0.762" layer="16"/>
 </signal>
 <signal name="N$4">
 <contactref element="U$1" pad="IN-"/>
@@ -2176,8 +2177,6 @@ design rules under a new name.</description>
 <contactref element="JP7" pad="1"/>
 <contactref element="JP4" pad="1"/>
 <contactref element="JP13" pad="2"/>
-<wire x1="64.780159375" y1="30.69845" x2="69.43596875" y2="35.354259375" width="0.762" layer="16"/>
-<wire x1="69.43596875" y1="35.354259375" x2="81.147921875" y2="35.354259375" width="0.762" layer="16"/>
 <wire x1="81.147921875" y1="35.354259375" x2="82.8268625" y2="35.354259375" width="0.762" layer="16"/>
 <wire x1="82.8268625" y1="35.354259375" x2="82.85988125" y2="35.321240625" width="0.762" layer="16"/>
 <via x="82.85988125" y="35.321240625" extent="1-16" drill="1" diameter="1.524"/>
@@ -2213,6 +2212,8 @@ design rules under a new name.</description>
 <wire x1="86.674959375" y1="30.261559375" x2="84.25941875" y2="27.84601875" width="0.762" layer="16"/>
 <wire x1="84.94268125" y1="25.58541875" x2="84.94268125" y2="15.9512" width="0.762" layer="16"/>
 <wire x1="84.94268125" y1="15.9512" x2="82.654140625" y2="13.662659375" width="0.762" layer="16"/>
+<wire x1="64.780159375" y1="31.44775" x2="68.68666875" y2="35.354259375" width="0.762" layer="16"/>
+<wire x1="68.68666875" y1="35.354259375" x2="81.147921875" y2="35.354259375" width="0.762" layer="16"/>
 </signal>
 <signal name="MOSI">
 <contactref element="U1" pad="17"/>
@@ -2279,11 +2280,10 @@ design rules under a new name.</description>
 </signal>
 <signal name="TXGPS">
 <contactref element="U1" pad="4"/>
-<contactref element="JP4" pad="3"/>
-<wire x1="59.7027" y1="32.24021875" x2="59.7027" y2="30.700990625" width="0.762" layer="16"/>
-<wire x1="59.7027" y1="30.700990625" x2="59.700159375" y2="30.69845" width="0.762" layer="16"/>
-<wire x1="81.147921875" y1="42.974259375" x2="70.436740625" y2="42.974259375" width="0.762" layer="16"/>
-<wire x1="70.436740625" y1="42.974259375" x2="59.7027" y2="32.24021875" width="0.762" layer="16"/>
+<contactref element="JP4" pad="2"/>
+<wire x1="62.240159375" y1="31.44775" x2="62.240159375" y2="32.771078125" width="0.762" layer="16"/>
+<wire x1="62.240159375" y1="32.771078125" x2="72.443340625" y2="42.974259375" width="0.762" layer="16"/>
+<wire x1="72.443340625" y1="42.974259375" x2="81.147921875" y2="42.974259375" width="0.762" layer="16"/>
 </signal>
 <signal name="RST">
 <contactref element="U1" pad="1"/>
@@ -2298,12 +2298,15 @@ design rules under a new name.</description>
 </signal>
 <signal name="RXGPS">
 <contactref element="U1" pad="5"/>
-<contactref element="JP4" pad="2"/>
-<wire x1="62.240159375" y1="30.69845" x2="62.240159375" y2="31.87191875" width="0.762" layer="16"/>
-<wire x1="62.240159375" y1="30.69845" x2="63.433953125" y2="31.89224375" width="0.762" layer="16"/>
-<wire x1="63.433953125" y1="31.89224375" x2="63.433953125" y2="32.018065625" width="0.762" layer="16"/>
-<wire x1="63.433953125" y1="32.018065625" x2="71.850146875" y2="40.434259375" width="0.762" layer="16"/>
-<wire x1="71.850146875" y1="40.434259375" x2="81.147921875" y2="40.434259375" width="0.762" layer="16"/>
+<contactref element="JP4" pad="3"/>
+<wire x1="59.700159375" y1="31.44775" x2="59.700159375" y2="33.0708" width="0.762" layer="16"/>
+<wire x1="59.700159375" y1="33.0708" x2="66.9036" y2="40.274240625" width="0.762" layer="16"/>
+<via x="66.9036" y="40.274240625" extent="1-16" drill="1" diameter="1.524"/>
+<wire x1="66.9036" y1="40.274240625" x2="73.6473" y2="40.274240625" width="0.762" layer="1"/>
+<wire x1="73.6473" y1="40.274240625" x2="73.75398125" y2="40.167559375" width="0.762" layer="1"/>
+<via x="73.75398125" y="40.167559375" extent="1-16" drill="1" diameter="1.524"/>
+<wire x1="73.75398125" y1="40.167559375" x2="80.881221875" y2="40.167559375" width="0.762" layer="16"/>
+<wire x1="80.881221875" y1="40.167559375" x2="81.147921875" y2="40.434259375" width="0.762" layer="16"/>
 </signal>
 <signal name="UARTTX">
 <contactref element="JP12" pad="2"/>
