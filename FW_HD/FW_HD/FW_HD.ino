@@ -134,7 +134,6 @@ void RFCOM()
 {
   byte pipeNum = 0;
   if ((unsigned long)(millis() - PREVRF) > SEND_RATE) {
-    PREVRF = millis();
     if (radio.available(&pipeNum)) {
       while (radio.available(&pipeNum)) {
         radio.read(&data, sizeof(data));
@@ -174,6 +173,7 @@ void RFCOM()
       Serial.println(String(VARGPS.Alti) + "|" + VARGPS.Speed + "|" + VARGPS.Sat + "|" + 0 + "|" + 0 + "|" + "|" + 0 + "|");
       PORTB ^= (1 << PINB0);
     }
+    PREVRF = millis();
   }
 }
 
