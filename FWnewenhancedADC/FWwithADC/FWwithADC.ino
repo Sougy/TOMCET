@@ -106,7 +106,7 @@ void setup() {
   DDRD &= ~(1 << PIND5); //LOAD
   PORTD &= ~(1 << PIND5);
   DDRD |= (1 << PIND4); //RST ENABLE/DISABLE
-  PORTD |= (1 << PIND4); //RST DISABLE
+  PORTD |= (1 << PIND4); //RST DISABLED
   DDRD  |= (1 << PIND6); //LED INDICATOR
   Wire.begin();
   rtc.begin();
@@ -584,6 +584,13 @@ void PROG()
 
   switch (VARSER.VAL) {
     //LOGIN STATE
+    case 6:
+      Serial.println("RST ENABLED");
+      PORTD &= ~(1 << PIND4);
+      VARSER.VAL      = 0;
+
+      break;
+
     case 5:
       PORTB &= ~(1 << PINB1);
       VARSH.LOGSTATE  = true;
