@@ -16,10 +16,11 @@
 #define DS3231_I2C_ADDRESS 0x68    // RTC ADDR
 #define DAYONE 0                   // ADDR IDX History HM DAY 1
 #define DAYTWO 1                   // ADDR IDX History HM DAY 2
-#define DAYTHREE 2                 // ADDR IDX History HM DAY 3
-#define ACTUAL 3                   // ADDR IDX History HM Actual
-#define HMEE 4                     // ADDR IDX HM value Actual
-#define COUNT 35                   // Size of char value
+#define DAYTHREE 2                 // ADDR IDX History HM DAY 3        
+#define HMEE 3                     // ADDR IDX HM value Actual
+#define HMDAY 4                    // HM PER DAY
+#define FLAG 5                     // ADDR IDX FLAG
+#define COUNT 35                   // Size of char value (BYTES)
 
 static Eeprom24C32_64 eeprom(EEPROM_ADDRESS);
 
@@ -31,6 +32,7 @@ LiquidCrystal_I2C lcd(0x20, 16, 2);
 RF24 radio(CE_PIN, CSN_PIN);
 const uint64_t address = 0x7878787878LL;
 unsigned long PREVSET = 0;
+unsigned long PREVSEN = 0;
 
 typedef struct
 {
@@ -50,19 +52,26 @@ typedef struct
   char ACTUALBYT[COUNT];
   char RTNVAL[COUNT]  = {0}; //outputBytes from eeprom
   char RSTVAL[COUNT]  = {0}; //Reset bytes all addr eeprom
-  uint8_t ADDRESS[5]  = {0, 42, 82, 122, 162}; //40bytes long each address
   String CURTIME;
   String CURDATE;
+  uint8_t ADDRESS[6]  = {0, 42, 82, 122, 162, 202}; //40bytes long each address
+  uint8_t LTCDATE;
   uint8_t SEC;
   uint8_t MIN;
   uint8_t SEQ;
   uint32_t HR;
   unsigned long SVDHM;
+  unsigned long HMPDAY;
   unsigned long LASTUNIX;
   unsigned long DELTATIME;
   unsigned long ELAPSED;
   bool LTCHM = false;
 } RTCOM; RTCOM VARRTC;
+
+typedef struct
+{
+  byte DAYFLAG = 0x00;
+} TRANSMIT; TRANSMIT VARTRANSMIT;
 
 typedef struct
 {
@@ -104,16 +113,27 @@ void setup() {
   radio.setPALevel(RF24_PA_MIN);
   radio.setDataRate(RF24_250KBPS);
   radio.stopListening();
-  Wire.begin();
-  rtc.begin();
   Serial.begin(9600);
 
   eeprom.initialize();
+  rtc.begin();
+
+  //READ HMACTUAL
   eeprom.readBytes(VARRTC.ADDRESS[HMEE], COUNT, VARRTC.RTNVAL);
   String STRHM(VARRTC.RTNVAL);
   VARRTC.SVDHM      = STRHM.toInt();
   VARRTC.RTNVAL[0]  = '\0';
+
+  //READ HM/DAY
+  eeprom.readBytes(VARRTC.ADDRESS[HMDAY], COUNT, VARRTC.RTNVAL);
+  String STRHM2(VARRTC.RTNVAL);
+  VARRTC.HMPDAY     = STRHM2.toInt();
+  VARRTC.RTNVAL[0]  = '\0';
+
+  //READ DAYFLAG STATE
+  VARTRANSMIT.DAYFLAG = eeprom.readByte(VARRTC.ADDRESS[FLAG]);
   Serial.println(VARRTC.SVDHM);
+  Serial.println(VARRTC.HMPDAY);
 }
 
 void loop() {
@@ -210,17 +230,18 @@ void PARSETHM()
     VARRTC.STRCONV        = "";
     VARRTC.SVDHM          = 0;
     VARRTC.SVDHM          = VARSER.SETDATA[0].toInt();
-
-    for (int i = 0; i < 4; i++) {
-      eeprom.writeBytes(VARRTC.ADDRESS[i], COUNT, VARRTC.RSTVAL);
+    Serial.println("ERASING...");
+    for (int i = 0; i < 5; i++) {
+      WCONV(VARRTC.RSTVAL, VARRTC.ADDRESS[i]);
+      Serial.println(String("ERASE DATA FROM ADDRESS IDX: ") + i);
     }
-    VARRTC.STRCONV = String(now.hour()) + now.minute() + now.second() + '|' + now.year() +
-                     now.month() + now.day() + '|' + VARRTC.SVDHM + 0;
-    VARRTC.STRCONV.toCharArray(VARRTC.ACTUALBYT, sizeof(VARRTC.ACTUALBYT));
-    eeprom.writeBytes(VARRTC.ADDRESS[ACTUAL], COUNT, VARRTC.ACTUALBYT);
+    eeprom.writeByte(VARRTC.ADDRESS[FLAG], 0x00); //Erase FLAG State
+    Serial.println("ERASED...");
+    VARRTC.STRCONV = String(VARRTC.SVDHM);
+    WCONV(VARRTC.STRCONV, VARRTC.ADDRESS[HMEE]);
+    VARRTC.STRCONV = String(VARRTC.SVDHM);
+    WCONV(VARRTC.STRCONV, VARRTC.ADDRESS[HMDAY]);
 
-    VARRTC.ACTUALBYT[0]   = '\0';
-    VARRTC.STRCONV        = "";
     VARSER.SEQ            = 0;
     VARSER.SETDATA[0]     = "";
     VARSER.DATAIN         = "";
@@ -292,11 +313,35 @@ byte decToBcd(byte val)
   return ( (val / 10 * 16) + (val % 10) );
 }
 
+
 /*
   =======================================================================
   =========================      HM program     =========================
   =======================================================================
 */
+void WCONV(String DATA, uint8_t ADDR)
+{
+  DATA.toCharArray(VARRTC.ACTUALBYT, sizeof(VARRTC.ACTUALBYT));
+  eeprom.writeBytes(VARRTC.ADDRESS[ADDR], COUNT, VARRTC.ACTUALBYT);
+
+  //Resetting all configurations
+  DATA                = "";
+  VARRTC.STRCONV      = "";
+  VARRTC.ACTUALBYT[0] = '\0';
+}
+
+void HMHISTORY(uint8_t ADDR)
+{
+  VARRTC.SVDHM += VARRTC.DELTATIME;
+  VARRTC.STRCONV = String(now.hour()) + now.minute() + now.second() + '|' + now.year() +
+                   now.month() + now.day() + '|' + VARRTC.HMPDAY + VARRTC.SVDHM;
+  WCONV(VARRTC.STRCONV, ADDR);
+
+  VARRTC.HMPDAY   = VARRTC.SVDHM;
+  VARRTC.STRCONV  = String(VARRTC.HMPDAY);
+  WCONV(VARRTC.STRCONV, HMDAY);
+}
+
 void HMS()
 {
   now = rtc.now();
@@ -316,12 +361,9 @@ void HMS()
       //Saving to memory
       VARRTC.SVDHM += VARRTC.DELTATIME;
       VARRTC.STRCONV  = String(VARRTC.SVDHM);
-      VARRTC.STRCONV.toCharArray(VARRTC.ACTUALBYT, sizeof(VARRTC.ACTUALBYT));
-      eeprom.writeBytes(VARRTC.ADDRESS[HMEE], COUNT, VARRTC.ACTUALBYT);
+      WCONV(VARRTC.STRCONV, HMEE);
 
       //Resetting all configurations
-      VARRTC.STRCONV      = "";
-      VARRTC.ACTUALBYT[0] = '\0';  
       VARRTC.ELAPSED      = 0;
       VARRTC.DELTATIME    = 0;
       VARRTC.SVDHM        = 0;
@@ -330,17 +372,50 @@ void HMS()
       eeprom.readBytes(VARRTC.ADDRESS[HMEE], COUNT, VARRTC.RTNVAL);
       String STRHM(VARRTC.RTNVAL);
       VARRTC.SVDHM      = STRHM.toInt();
-      VARRTC.RTNVAL[0]  = '\0'; 
+      VARRTC.RTNVAL[0]  = '\0';
       VARRTC.LTCHM      = false;
     }
   }
   //saat nyala lg waktunya blm update (SVDHM) //closed need to test NOTE: RESET DELTATIME in 2
+
+  if (VARRTC.LTCDATE != now.day())
+  {
+    VARRTC.LTCDATE  = now.day();
+
+    //**Saving to eeprom mechanism**
+    if (now.hour() == 9)
+    {
+      if (!(VARTRANSMIT.DAYFLAG & (1 << DAYONE))) {
+        HMHISTORY(DAYONE);
+        VARTRANSMIT.DAYFLAG |= (1 << DAYONE);
+        Serial.println("DONE D-1");
+      }
+
+      else if (!(VARTRANSMIT.DAYFLAG & (1 << DAYTWO)))
+      {
+        HMHISTORY(DAYTWO);
+        VARTRANSMIT.DAYFLAG |= (1 << DAYTWO);
+        Serial.println("DONE D-2");
+      }
+
+      else if (!(VARTRANSMIT.DAYFLAG & (1 << DAYTHREE)))
+      {
+        HMHISTORY(DAYTHREE);
+        VARTRANSMIT.DAYFLAG |= (1 << DAYTHREE);
+        Serial.println("DONE D-3");
+      }
+      eeprom.writeByte(VARRTC.ADDRESS[FLAG], VARTRANSMIT.DAYFLAG);
+      Serial.println("DAY SAVED");
+    }
+  }
+
   VARRTC.CURTIME  = String(now.hour()) + ":" + now.minute() + ":" + now.second();
   VARRTC.CURDATE  = String(now.year()) + "-" + now.month() + "-" + now.day();
   VARRTC.SEC      = (VARRTC.SVDHM + VARRTC.DELTATIME) % MINDIV;
   VARRTC.MIN      = ((VARRTC.SVDHM + VARRTC.DELTATIME) % HOURDIV) / MINDIV;
   VARRTC.HR       = (VARRTC.SVDHM + VARRTC.DELTATIME) / HOURDIV;
 }
+
 
 /*
   ============================================================================
@@ -361,8 +436,13 @@ void LTCSEN()
     VARADC.VIN = 0;
   }
 
-  Serial.println(String(VARRTC.HR)+'/'+VARRTC.MIN+'/'+VARRTC.SEC);
-  delay(1000);
+  if ((unsigned long)(millis() - PREVSEN) > SEND_RATE) {
+    Serial.println(String(VARRTC.HR) + '/' + VARRTC.MIN + '/' + VARRTC.SEC);
+    Serial.println(String(VARRTC.CURDATE) + '/' + VARRTC.CURTIME);
+    Serial.println(VARRTC.SVDHM);
+    Serial.println(VARRTC.HMPDAY);
+    PREVSEN = millis();
+  }
 }
 
 
@@ -404,5 +484,7 @@ void PROG()
       }
       VARSER.INHM = false;
       VARSER.VAL  = 0;
+
+      break;
   }
 }
