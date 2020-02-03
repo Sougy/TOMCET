@@ -17,7 +17,7 @@ void setup()
   //set the 
 //  initial time here:
 //  DS3231 seconds, minutes, hours, day, date, month, year
-   setDS3231time(40,58,8,4,8,1,20);
+   setDS3231time(40,58,8,4,8,1,20); //[40|45|8|7|11|1|20]
 }
 void setDS3231time(byte second, byte minute, byte hour, byte dayOfWeek, byte dayOfMonth, byte month, byte year)
 {

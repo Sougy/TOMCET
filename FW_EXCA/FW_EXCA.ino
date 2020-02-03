@@ -72,10 +72,12 @@ typedef struct
 
 struct package
 {
-  char text1[12];
-  char text2[12];
-  char text3[5] = "126";
-  unsigned int stat = 0;
+  char text1[10];
+  char text2[9];
+  char text3[4] = "126";
+  uint8_t stat = 0;
+  float LSTHM=0;
+  float ACTHM=0;
 }; typedef struct package Package;
 Package data;
 

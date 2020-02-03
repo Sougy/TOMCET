@@ -50,10 +50,12 @@ unsigned long PREVRF = 0;
 
 struct package
 {
-  char text1[12];
-  char text2[12];
-  char text3[5];
-  unsigned int stat = 0;
+  char text1[10];
+  char text2[9];
+  char text3[4];
+  uint8_t stat = 0;
+  float LSTHM;
+  float ACTHM;
 }; typedef struct package Package;
 Package data;
 
@@ -137,32 +139,34 @@ void RFCOM()
     if (radio.available(&pipeNum)) {
       while (radio.available(&pipeNum)) {
         radio.read(&data, sizeof(data));
-        String STRLONGI = String(data.text1);
-        longitude       = STRLONGI.toInt();
-        String STRLATI  = String(data.text2);
-        latitude        = STRLATI.toInt();
-        printL(PORT, VARGPS.Lati);
-        Serial.print("|");
-        printL(PORT, VARGPS.Longi);
-        Serial.print("|");
-        Serial.print(String(VARGPS.Alti) + "|" + VARGPS.Speed + "|" + VARGPS.Sat + "|");
-        printL(PORT, latitude);
-        Serial.print("|");
-        printL(PORT, longitude);
-        Serial.print("|");
-        PORT.println(String(data.text3) + "|" + data.stat + "|");
-        PORTB ^= (1 << PINB0);
-        /*PORT.println();
-          PORT.println(String("pipeNum: ") + pipeNum);
-          PORT.print("Longitude: ");
-          printL(PORT, longitude);
-          PORT.println();
-          PORT.print("Latitude: ");
+        if (data.stat == 20 || data.stat == 21 || data.stat == 3 || data.stat == 4 || data.stat == 5 ) {
+          printL(PORT, VARGPS.Lati);
+          Serial.print("|");
+          printL(PORT, VARGPS.Longi);
+          Serial.print("|");
+          Serial.print(String(VARGPS.Alti) + '|' + VARGPS.Speed + '|' + VARGPS.Sat + '|');
+          PORT.println(String(data.text3) + '|' + data.stat + '|' + data.text1 + '|' + data.text2 + '|' +
+                       (data.LSTHM) + '|' + (data.ACTHM) + '|');
+          PORTB ^= (1 << PINB0);
+        }
+        if (data.stat == 0 || data.stat == 1) {
+          printL(PORT, VARGPS.Lati);
+          Serial.print("|");
+          printL(PORT, VARGPS.Longi);
+          Serial.print("|");
+          Serial.print(String(VARGPS.Alti) + "|" + VARGPS.Speed + "|" + VARGPS.Sat + "|");
+          String STRLONGI = String(data.text1);
+          longitude       = STRLONGI.toInt();
+          String STRLATI  = String(data.text2);
+          latitude        = STRLATI.toInt();
+          PORT.print(String(data.text3) + '|' + data.stat + '|');
           printL(PORT, latitude);
-          PORT.println();
-          PORT.println(String("No lambung: ") + data.text3);
-          PORT.println(String("stat: ") + data.stat);
-          PORT.println();*/
+          Serial.print("|");
+          printL(PORT, longitude);
+          Serial.print("|");
+          PORT.println(String(data.LSTHM) + '|' + data.ACTHM + '|');
+          PORTB ^= (1 << PINB0);
+        }
       }
     }
     else {
@@ -170,7 +174,8 @@ void RFCOM()
       Serial.print("|");
       printL(PORT, VARGPS.Longi);
       Serial.print("|");
-      Serial.println(String(VARGPS.Alti) + "|" + VARGPS.Speed + "|" + VARGPS.Sat + "|" + 0 + "|" + 0 + "|" + "|" + 0 + "|");
+      Serial.println(String(VARGPS.Alti) + "|" + VARGPS.Speed + "|" + VARGPS.Sat + '|' + 0 + '|' + 0 + '|' +
+                     0 + '|' + 0 + '|' + 0 + '|' + 0 + '|');
       PORTB ^= (1 << PINB0);
     }
     PREVRF = millis();
