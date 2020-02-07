@@ -46,6 +46,7 @@ typedef struct
 
 typedef struct
 {
+  uint8_t BTFAIL  = 0;
   uint8_t WAITSH  = 0;
   uint8_t WAITACC = 0;
   uint8_t WAITRPY = 0;
@@ -520,6 +521,7 @@ void SHPC()
           VARSH.LOGSTATE = true;
           VARSH.WAITACC = 0;
           VARSH.WAITSH  = 0;
+          VARSH.BTFAIL++;
         }
       }
     }
@@ -608,9 +610,16 @@ void PROG()
           Serial.println('$');
           PREVSET = millis();
         }
+        VARSH.BTFAIL  = 0;
       }
       else {
         SHPC();
+        if (VARSH.BTFAIL != 0) {
+          if ((unsigned long)(millis() - PREVSET) > PRTIME) {
+            Serial.println(String("F$") + VARSH.BTFAIL);
+            PREVSET = millis();
+          }
+        }
       }
       break;
 
@@ -641,6 +650,7 @@ void PROG()
       VARSH.WAITRPY   = 0;
       VARSH.SHCODE    = 0;
       VARSH.WARNED    = 0;
+      VARSH.BTFAIL    = 0;
       VARSH.LOGSTATE  = false;
       VARSER.VAL      = 0;
 
