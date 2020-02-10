@@ -40,7 +40,7 @@ uint8_t rfInterval    = 0;
 
 typedef struct
 {
-  const uint8_t VREF  = 2;
+  const uint8_t VREF  = 10;
   uint16_t ADV        = 0;
   uint16_t EMA_S      = 0;
   float VOUT          = 0.0;
@@ -380,6 +380,8 @@ void HMSET()
     Serial.println(String("Remove data from address index...") + i);
     delay(100);
   }
+  eeprom.writeByte(VARRTC.ADDRESS[FLAG], 0x00);
+
   VARRTC.STRCONV  = String("0");
   VARRTC.STRCONV.getBytes(VARRTC.ACTUALBYT, BYTLEN);
   eeprom.writeBytes(VARRTC.ADDRESS[YSTDAY], BYTLEN, VARRTC.ACTUALBYT);
@@ -388,8 +390,6 @@ void HMSET()
   VARRTC.STRCONV  = String("0");
   VARRTC.STRCONV.getBytes(VARRTC.ACTUALBYT, BYTLEN);
   eeprom.writeBytes(VARRTC.ADDRESS[YSTIME], BYTLEN, VARRTC.ACTUALBYT);
-
-  eeprom.writeByte(VARRTC.ADDRESS[FLAG], 0x00);
 
   delay(1500);
   lcd.clear();
@@ -468,8 +468,8 @@ void HMS()
         eeprom.writeBytes(VARRTC.ADDRESS[YSTDAY], BYTLEN, VARRTC.ACTUALBYT);
         VARRTC.LSTT.getBytes(VARRTC.ACTUALBYT, BYTLEN);
         eeprom.writeBytes(VARRTC.ADDRESS[YSTIME], BYTLEN, VARRTC.ACTUALBYT);
-        eeprom.writeByte(VARRTC.ADDRESS[FLAG], VARRTC.DAYFLAG);
         VARRTC.DAYFLAG |= (1 << YSTDAY);
+        eeprom.writeByte(VARRTC.ADDRESS[FLAG], VARRTC.DAYFLAG);
       }
     }
     VARRTC.DELTATIME = now.unixtime() - VARRTC.LASTUNIX;
@@ -521,6 +521,7 @@ void HMHIS(uint8_t ADDR)
   HMLSTCONV.toCharArray(VARCONV.SVDHMPDAY[ADDR], sizeof(VARCONV.SVDHMPDAY[ADDR]));
 
   VARRTC.STRCONV.getBytes(VARRTC.ACTUALBYT, BYTLEN);
+  delay(500);
   eeprom.writeBytes(VARRTC.ADDRESS[ADDR], BYTLEN, VARRTC.ACTUALBYT);
 
   VARRTC.STRCONV  = "";
@@ -554,7 +555,7 @@ void DAYSAVE()
   {
     VARRTC.LTCDATE  = now.day();
     //**Saving to eeprom mechanism**
-    if (now.hour() == 0)
+    if (now.hour() == 8)
     {
       if (!(VARRTC.DAYFLAG & (1 << DAYONE)))
       {
@@ -611,15 +612,6 @@ void LTCSEN()
     VARADC.VIN = 0;
   }
 
-  lcd.setCursor(0, 0);
-  lcd.print(String("Hometis ") + VARRTC.CURTIME);
-  lcd.setCursor(0, 1);
-  lcd.print(String((VARRTC.SVDHM + VARRTC.DELTATIME) / 3600.0) + '(' + VARRTC.ENGSTAT + ')');
-
-  if (now.second() == 0) {
-    lcd.clear();
-  }
-
   RFLINK();
 }
 
@@ -662,6 +654,15 @@ void RFLINK()
       Serial.println(String(VARBUFF.NOUNIT) + '|' + VARBUFF.stat + '|' + VARBUFF.RFDATE + '|' +
                      VARBUFF.RFTIME + '|' + VARBUFF.LSTHM + '|' + VARBUFF.ACTHM + '|');
       rfInterval++;
+    }
+
+    lcd.setCursor(0, 0);
+    lcd.print(String("Hometis ") + VARRTC.CURTIME);
+    lcd.setCursor(0, 1);
+    lcd.print(String((VARRTC.SVDHM + VARRTC.DELTATIME) / 3600.0) + '(' + VARRTC.ENGSTAT + ')');
+
+    if (now.second() == 0) {
+      lcd.clear();
     }
     PREVSEN = millis();
   }
