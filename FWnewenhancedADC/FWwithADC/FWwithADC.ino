@@ -101,6 +101,7 @@ typedef struct
 void setup() {
   // put your setup code here, to run once:
   DDRB |= (1 << PINB0); //RELAY
+  PORTB |= (1 << PINB0);
   DDRB |= (1 << PINB1); //BUZZER
   DDRB &= ~(1 << PINB2); //BUTTON
   PORTB |= (1 << PINB2);
@@ -501,14 +502,14 @@ void SHPC()
     else {
       if (VARSH.WAITSH <= 5) {
         VARSH.WAITRPY = 0;
-        PORTB |= (1 << PINB0);
+        PORTB &= ~(1 << PINB0);
         if ((unsigned long)(millis() - PREVSH) > PRTIME) {
           VARSH.WAITSH++;
           PREVSH = millis();
         }
       }
       else {
-        PORTB &= ~(1 << PINB0);
+        PORTB |= (1 << PINB0);
         //rcv condition code(2) from latte
         if (VARSH.WAITRPY <= BOOTIME) {
           if ((unsigned long)(millis() - PREVSH) > PRTIME) {
@@ -517,7 +518,7 @@ void SHPC()
           }
         }
         else {
-          PORTB &= ~(1 << PINB1);
+          PORTB |= (1 << PINB1);
           VARSH.LOGSTATE = true;
           VARSH.WAITACC = 0;
           VARSH.WAITSH  = 0;
@@ -604,7 +605,7 @@ void PROG()
 
     //SHUT DOWN PC
     case 4:
-      if (VARSH.SHCODE < 5) {
+      if (VARSH.SHCODE < 5) { 
         if ((unsigned long)(millis() - PREVSET) > PRTIME) {
           VARSH.SHCODE++;
           Serial.println('$');
