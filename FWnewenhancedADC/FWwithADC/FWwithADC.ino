@@ -98,6 +98,22 @@ typedef struct
 
 } RTCOM; RTCOM VARRTC;
 
+void SETRTC(void);
+byte decToBcd(byte val);
+void PROG(void);
+void LTCWARN(void);
+void SHPC(void);
+void HMWRT(unsigned long DATA2CONV);
+void RDHMRTC(void);
+void HMS(void);
+void RDBUF(int DVCADDR, unsigned int EEADDR, byte *BUFFER, int LENGTH);
+byte RDBYTE(int DVCADDR, unsigned int EEADDR);
+void WRTBYTE(int DVCADDR, unsigned int EEADDR, byte DATA);
+void LTCSEN(void);
+void PARSETHM(void);
+void LTCSER(void);
+void SERFLUSH(void);
+
 void setup() {
   // put your setup code here, to run once:
   DDRB |= (1 << PINB0); //RELAY
@@ -128,8 +144,6 @@ void loop() {
   =======================================================================
 */
 void SETRTC() {
-  byte second, minute, hour, dayOfWeek, dayOfMonth, month, year;
-
   while (Serial.available() > 0) {
     char INCHAR = (char)Serial.read();
     VARSET.RTCIN += INCHAR;
@@ -154,13 +168,13 @@ void SETRTC() {
         VARSET.RTCDATA[VARSET.RTCIDX] = VARSET.RTCDATA[VARSET.RTCIDX] + VARSET.RTCIN[VARSET.CNTR];
       }
     }
-    second      = VARSET.RTCDATA[0].toInt();
-    minute      = VARSET.RTCDATA[1].toInt();
-    hour        = VARSET.RTCDATA[2].toInt();
-    dayOfWeek   = VARSET.RTCDATA[3].toInt();
-    dayOfMonth  = VARSET.RTCDATA[4].toInt();
-    month       = VARSET.RTCDATA[5].toInt();
-    year        = VARSET.RTCDATA[6].toInt();
+    byte second      = VARSET.RTCDATA[0].toInt();
+    byte minute      = VARSET.RTCDATA[1].toInt();
+    byte hour        = VARSET.RTCDATA[2].toInt();
+    byte dayOfWeek   = VARSET.RTCDATA[3].toInt();
+    byte dayOfMonth  = VARSET.RTCDATA[4].toInt();
+    byte month       = VARSET.RTCDATA[5].toInt();
+    byte year        = VARSET.RTCDATA[6].toInt();
 
     //Serial.println(String("Detik: ") + second + " Menit: " + minute + " jam: " +
     //hour + " Hari: " + dayOfWeek + " tanggal: " + dayOfMonth + " Bulan: " + month + " Tahun: " + year);
@@ -355,7 +369,7 @@ void LTCSEN()
   =========================   RTC R/W program   =========================
   =======================================================================
 */
-void WRTBYTE(int DVCADDR, unsigned int EEADDR, byte DATA)
+/*void WRTBYTE(int DVCADDR, unsigned int EEADDR, byte DATA)
 {
   int RDATA = DATA;
   Wire.beginTransmission(DVCADDR);
@@ -363,7 +377,7 @@ void WRTBYTE(int DVCADDR, unsigned int EEADDR, byte DATA)
   Wire.write((int)(EEADDR & 0xFF));
   Wire.write(RDATA);
   Wire.endTransmission();
-}
+}*/
 
 void WRTPAGE(int DVCADDR, unsigned int ADDRPG, byte* DATA, byte LENGTH)
 {
@@ -381,14 +395,13 @@ byte RDBYTE(int DVCADDR, unsigned int EEADDR)
   byte RDATA  = 0xFF;
   Wire.beginTransmission(DVCADDR);
   Wire.write((int)(EEADDR >> 8));
-  Wire.write((int)(EEADDR & 0xFF));
   Wire.endTransmission();
   Wire.requestFrom(DVCADDR, 1);
   if (Wire.available()) RDATA = Wire.read();
   return RDATA;
 }
 
-void RDBUF(int DVCADDR, unsigned int EEADDR, byte *BUFFER, int LENGTH)
+/*void RDBUF(int DVCADDR, unsigned int EEADDR, byte *BUFFER, int LENGTH)
 {
   Wire.beginTransmission(DVCADDR);
   Wire.write((int)(EEADDR >> 8));
@@ -398,7 +411,7 @@ void RDBUF(int DVCADDR, unsigned int EEADDR, byte *BUFFER, int LENGTH)
   int DATASEQ = 0;
   for (DATASEQ = 0; DATASEQ < LENGTH; DATASEQ++)
     if (Wire.available()) BUFFER[DATASEQ] = Wire.read();
-}
+}*/
 
 
 /*
