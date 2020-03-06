@@ -50,9 +50,9 @@ unsigned long PREVRF = 0;
 
 struct package
 {
-  char text1[10];
+  char text1[11];
   char text2[9];
-  char text3[4];
+  char text3[3];
   uint8_t stat = 0;
   float LSTHM;
   float ACTHM;

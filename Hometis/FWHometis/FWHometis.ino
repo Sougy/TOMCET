@@ -5,6 +5,8 @@
 #include "RTClib.h"
 #include <Eeprom24C32_64.h>
 #include <LiquidCrystal_I2C.h>
+//#include <EEPROM.h>
+//#include <avr/eeprom.h>
 
 #define ANIN 0
 #define CE_PIN 9
@@ -17,12 +19,13 @@
 #define LCDADDR 0x27
 #define DAYONE 0                    // ADDR IDX History HM DAY 1
 #define DAYTWO 1                    // ADDR IDX History HM DAY 2
-#define DAYTHREE 2                  // ADDR IDX History HM DAY 3        
-#define HMEE 3                      // ADDR IDX HM value Actual
-#define HMDAY 4                     // HM PER DAY
-#define FLAG 5                      // ADDR IDX FLAG
-#define YSTDAY 6                    // ADDR LSTD
-#define YSTIME 7                    // ADDR LSTT
+#define DAYTHREE 2                  // ADDR IDX History HM DAY 3
+#define YSTDAY 3                    // ADDR LSTD
+#define YSTIME 4                    // ADDR LSTT        
+#define HMEE 5                      // ADDR IDX HM value Actual
+#define HMDAY 6                     // HM PER DAY
+#define FLAG 7                      // ADDR IDX FLAG
+
 
 LiquidCrystal_I2C lcd(LCDADDR, 16, 2);
 
@@ -63,7 +66,7 @@ typedef struct
   byte ACTUALBYT[BYTLEN];
   byte RTNVAL[BYTLEN]   = {0}; //outputBytes from eeprom
   byte RSTVAL[BYTLEN]   = {0}; //Reset bytes all addr eeprom
-  const word ADDRESS[8] = {0, 60, 120, 180, 240, 300, 360, 420}; //60bytes long each address
+  const word ADDRESS[8] = {0, 45, 90, 135, 180, 225, 270, 315}; //45bytes long each address
   uint8_t LTCDATE;
   uint8_t SEC;
   uint8_t MIN;
@@ -79,19 +82,19 @@ typedef struct
 
 typedef struct
 {
-  char RFDATE[10];
+  char RFDATE[11];
   char RFTIME[9];
-  char NOUNIT[4]  = "123";
-  uint8_t stat    = 20;
+  char NOUNIT[3]  = "22";
+  uint8_t stat    = 2;
   float LSTHM;
   float ACTHM;
 } RFCOM; RFCOM VARRF;
 
 typedef struct
 {
-  char RFDATE[10];
+  char RFDATE[11];
   char RFTIME[9];
-  char NOUNIT[4]  = "123";
+  char NOUNIT[3]  = "22";
   uint8_t stat    = 3;
   float LSTHM;
   float ACTHM;
@@ -131,6 +134,23 @@ typedef struct
   byte IDX;
 } SERCOM; SERCOM VARSER;
 
+char* getTagValue(char* a_tag_list, char* a_tag);
+void SPLITVAL(int VAL);
+void STPMEM();
+void SERFLUSH(void);
+void LTCSER();
+void SETRTC();
+byte decToBcd(byte val);
+void HMSET();
+void PARSETHM();
+void HMS();
+void HMHIS(uint8_t ADDR);
+void DAYSAVE();
+void LTCSEN();
+void BUFFRF(uint8_t VAL);
+void RFLINK();
+void PROG();
+
 void setup() {
   // put your setup code here, to run once:
   Serial.begin(9600);
@@ -155,7 +175,7 @@ void loop() {
 char* getTagValue(char* a_tag_list, char* a_tag)
 {
   /* 'strtok' modifies the string. */
-  char* tag_list_copy = malloc(strlen(a_tag_list) + 1);
+  char* tag_list_copy = (char*)malloc(strlen(a_tag_list) + 1);
   char* result        = 0;
   char* s;
 
@@ -171,7 +191,7 @@ char* getTagValue(char* a_tag_list, char* a_tag)
       if (0 == strcmp(s, a_tag))
       {
         equals_sign++;
-        result = malloc(strlen(equals_sign) + 1);
+        result = (char*)malloc(strlen(equals_sign) + 1);
         strcpy(result, equals_sign);
       }
     }
@@ -193,16 +213,16 @@ void SPLITVAL(int VAL)
   VARRTC.RTN = String((char*)VARRTC.RTNVAL);
   VARRTC.RTN.toCharArray(VARCONV.DAY[VAL], sizeof(VARCONV.DAY[VAL]));
 
-  DATE  = getTagValue(VARCONV.DAY[VAL], "D"); VARCONV.CONVDAT = String(DATE);
+  DATE  = getTagValue(VARCONV.DAY[VAL], (char*)"D"); VARCONV.CONVDAT = String(DATE);
   VARCONV.CONVDAT.toCharArray(VARCONV.SVDDATE[VAL], sizeof(VARCONV.SVDDATE[VAL]));
 
-  TIME  = getTagValue(VARCONV.DAY[VAL], "T"); VARCONV.CONVDAT = String(TIME);
+  TIME  = getTagValue(VARCONV.DAY[VAL], (char*)"T"); VARCONV.CONVDAT = String(TIME);
   VARCONV.CONVDAT.toCharArray(VARCONV.SVDTIME[VAL], sizeof(VARCONV.SVDTIME[VAL]));
 
-  LAST  = getTagValue(VARCONV.DAY[VAL], "L"); VARCONV.CONVDAT = String(LAST);
+  LAST  = getTagValue(VARCONV.DAY[VAL], (char*)"L"); VARCONV.CONVDAT = String(LAST);
   VARCONV.CONVDAT.toCharArray(VARCONV.SVDHMPDAY[VAL], sizeof(VARCONV.SVDHMPDAY[VAL]));
 
-  ACTH  = getTagValue(VARCONV.DAY[VAL], "A"); VARCONV.CONVDAT = String(ACTH);
+  ACTH  = getTagValue(VARCONV.DAY[VAL], (char*)"A"); VARCONV.CONVDAT = String(ACTH);
   VARCONV.CONVDAT.toCharArray(VARCONV.SVDHMACT[VAL], sizeof(VARCONV.SVDHMACT[VAL]));
 
   free(DATE);
@@ -324,7 +344,7 @@ void SETRTC() {
     //Serial.print(VARSET.RTCIN);
     //Serial.print("\n");
 
-    for (VARSET.CNTR = 1; VARSET.CNTR < VARSET.RTCIN.length(); VARSET.CNTR++) {
+    for (VARSET.CNTR = 1; (unsigned)VARSET.CNTR < VARSET.RTCIN.length(); VARSET.CNTR++) {
       if (VARSET.RTCIN[VARSET.CNTR] == '[') {
         VARSET.RTCDATA[VARSET.RTCIDX] = "";
       }
@@ -380,6 +400,7 @@ void HMSET()
     Serial.println(String("Remove data from address index...") + i);
     delay(100);
   }
+  VARRTC.DAYFLAG  = 0x00;
   eeprom.writeByte(VARRTC.ADDRESS[FLAG], 0x00);
 
   VARRTC.STRCONV  = String("0");
@@ -459,7 +480,7 @@ void HMS()
       VARRTC.LASTUNIX   = now.unixtime();
       VARRTC.LTCHM      = true;
       VARRTC.ENGSTAT    = "ON";
-      VARRF.stat        = 21;
+      VARRF.stat        = 6;
       lcd.clear();
       if (!(VARRTC.DAYFLAG & (1 << YSTDAY))) {
         VARRTC.LSTD = String(now.day()) + '-' + now.month() + '-' + now.year();
@@ -488,7 +509,7 @@ void HMS()
       VARRTC.SVDHM        = 0;
       VARRTC.STRCONV      = "";
       VARRTC.ENGSTAT      = "OFF";
-      VARRF.stat          = 20;
+      VARRF.stat          = 2;
 
       //Read from memory
       eeprom.readBytes(VARRTC.ADDRESS[HMEE], BYTLEN, VARRTC.RTNVAL);
@@ -555,7 +576,7 @@ void DAYSAVE()
   {
     VARRTC.LTCDATE  = now.day();
     //**Saving to eeprom mechanism**
-    if (now.hour() == 8)
+    if (now.hour() == 0)
     {
       if (!(VARRTC.DAYFLAG & (1 << DAYONE)))
       {

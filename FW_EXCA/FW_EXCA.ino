@@ -72,9 +72,9 @@ typedef struct
 
 struct package
 {
-  char text1[10];
+  char text1[11];
   char text2[9];
-  char text3[4] = "126";
+  char text3[3] = "129";
   uint8_t stat = 0;
   float LSTHM=0;
   float ACTHM=0;
