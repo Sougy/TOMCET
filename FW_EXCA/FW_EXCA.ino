@@ -74,7 +74,7 @@ struct package
 {
   char text1[11];
   char text2[9];
-  char text3[3] = "129";
+  char text3[3] = "126";
   uint8_t stat = 0;
   float LSTHM=0;
   float ACTHM=0;
